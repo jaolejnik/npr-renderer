@@ -478,7 +478,6 @@ void edan35::Assignment2::run()
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::GBuffer)]);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-			// XXX: Is any other clearing needed?
 
 			glUseProgram(fill_gbuffer_shader);
 			glUniform1i(fill_gbuffer_shader_locations.diffuse_texture, 0);
@@ -542,6 +541,7 @@ void edan35::Assignment2::run()
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::LightAccumulation)]);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
 			// XXX: Is any clearing needed?
+
 			for (size_t i = 0; i < static_cast<size_t>(lights_nb); ++i)
 			{
 				auto const &lightTransform = lightTransforms[i];
@@ -557,6 +557,7 @@ void edan35::Assignment2::run()
 
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::ShadowMap)]);
 				glViewport(0, 0, constant::shadowmap_res_x, constant::shadowmap_res_y);
+				glClear(GL_DEPTH_BUFFER_BIT);
 				// XXX: Is any clearing needed?
 
 				glUseProgram(fill_shadowmap_shader);
@@ -606,6 +607,8 @@ void edan35::Assignment2::run()
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::LightAccumulation)]);
 				glUseProgram(accumulate_lights_shader);
 				glViewport(0, 0, framebuffer_width, framebuffer_height);
+				glClear(GL_COLOR_BUFFER_BIT);
+				glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 				// XXX: Is any clearing needed?
 
 				glUniform1i(accumulate_light_shader_locations.light_index, static_cast<int>(i));
