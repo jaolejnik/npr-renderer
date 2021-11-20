@@ -40,20 +40,25 @@ layout (location = 2) out vec4 geometry_normal;
 
 
 void main()
-{
-	vec2 tex_coords = gl_FragCoord.xy * inverse_screen_resolution.xy;    // this should be [0-1]
-	float depth = texture(depth_texture, tex_coords).z; 				 // this should be [0-1]
-	vec4 proj_pos = vec4(tex_coords, depth, gl_FragCoord.w) * 2.0 - 1.0; // this should be [-1, 1]
-	vec3 world_pos = (proj_pos * camera.view_projection_inverse).xyz / gl_FragCoord.w;
+{	
+	vec2 tex_coords = gl_FragCoord.xy * inverse_screen_resolution;
+	float depth = texture(depth_texture, tex_coords).r;
 
-	vec3 normal_vec = geometry_normal.xyz * 2.0 - 1.0; // this should be [-1, 1]
-	vec3 light_vec = normalize(light_position - world_pos);
-	vec3 view_vec = normalize(camera_position - world_pos);
-	vec3 reflection_vec = normalize(reflect(-light_vec, normal_vec));
+	vec4 proj_pos = vec4(tex_coords, depth, 1.0) * 2.0 - 1.0;
+	vec4 world_pos = camera.view_projection_inverse * proj_pos;
+	world_pos /= world_pos.w; 
 
-	vec3 diffuse = max(dot(normal_vec, light_vec), 0.0)  * light_color;
-	vec3 specular = pow(max(dot(reflection_vec, view_vec), 0.0), light_intensity)  * light_color;
+	vec3 normal = geometry_normal.xyz * 2.0 - 1.0;
+	vec3 view = normalize(camera_position - world_pos.xyz);
+	vec3 reflection = normalize(reflect(-light_direction, normal));
 
-	light_diffuse_contribution  = vec4(diffuse, 1.0); // funky behaviour
-	light_specular_contribution = vec4(specular, 1.0); // doesn't seem to work at all
+	vec3 diffuse = max(dot(normal, light_direction), 0.0) * light_color;
+	vec3 specular = pow(max(dot(reflection, view), 0.0), light_intensity) * light_color;
+
+	// ---- hard-coded colors
+	// light_diffuse_contribution  = vec4(0.0,0.0, 0.2, 1.0); 
+	// light_specular_contribution = vec4(0.0,0.2, 0.0, 1.0);
+	// ---- actual colors with phong but only 2 of them are visible
+	light_diffuse_contribution  = vec4(diffuse, 1.0); 
+	light_specular_contribution = vec4(specular, 1.0);
 }
