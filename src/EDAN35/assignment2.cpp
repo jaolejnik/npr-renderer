@@ -32,7 +32,7 @@ namespace constant
 
 	constexpr size_t lights_nb = 4;
 	constexpr float light_intensity = 72.0f * (scale_lengths * scale_lengths);
-	constexpr float light_angle_falloff = glm::radians(37.0f);
+	constexpr float light_angle_falloff = glm::radians(45.0f);
 }
 
 namespace
@@ -478,7 +478,6 @@ void edan35::Assignment2::run()
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::GBuffer)]);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
 			// XXX: Is any other clearing needed?
-			glClearColor(0.5f, 0.6f, 0.7f, 1.0f);
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 			glUseProgram(fill_gbuffer_shader);
@@ -543,7 +542,6 @@ void edan35::Assignment2::run()
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::LightAccumulation)]);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
 			// XXX: Is any clearing needed?
-			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT);
 
 			for (size_t i = 0; i < static_cast<size_t>(lights_nb); ++i)
