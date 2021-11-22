@@ -49,23 +49,23 @@ void main()
 	world_pos /= world_pos.w; 
 
 
-	vec3 light = normalize(light_position - world_pos.xyz);
-	vec3 normal = texture(normal_texture, tex_coords).xyz * 2.0 - 1.0;
-	vec3 view = normalize(camera_position - world_pos.xyz);
-	vec3 reflection = normalize(reflect(light, normal));
+	vec3 L = normalize(light_position - world_pos.xyz);
+	vec3 N = texture(normal_texture, tex_coords).xyz * 2.0 - 1.0;
+	vec3 V = normalize(camera_position - world_pos.xyz);
+	vec3 R = normalize(reflect(-L, N));
 
 	float light_distance = length(light_position - world_pos.xyz);
 	float linear_falloff = 1.0 / (light_distance * light_distance);
 
-	float theta = dot(light_direction, -light);
+	float theta = dot(light_direction, -L);
 	float epsilon =  cos(light_angle_outer_falloff) - cos(light_angle_falloff) ;
 	float angular_falloff = clamp((theta - cos(light_angle_falloff)) / epsilon, 0.0, 1.0);
 
 	float light_total_intensity =  light_intensity * angular_falloff * linear_falloff;
 
-	vec3 diffuse = max(dot(normal, light), 0.0) * light_color * light_total_intensity;
-	// TODO find a proper value for shininess ------------v
-	vec3 specular = pow(max(dot(reflection, view), 0.0), 50.0) * light_color * light_total_intensity;
+	vec3 diffuse = max(dot(N, L), 0.0) * light_color * light_total_intensity;
+	// TODO find a proper value for shininess--v
+	vec3 specular = pow(max(dot(R, V), 0.0), 50.0) * light_color * light_total_intensity;
 
 	light_diffuse_contribution  = vec4(diffuse, 1.0); 
 	light_specular_contribution = vec4(specular, 1.0);
