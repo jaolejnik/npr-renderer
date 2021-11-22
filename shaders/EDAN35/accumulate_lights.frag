@@ -31,6 +31,7 @@ uniform vec3 light_position;
 uniform vec3 light_direction;
 uniform float light_intensity;
 uniform float light_angle_falloff;
+uniform float light_angle_outer_falloff;
 
 uniform vec2 shadowmap_texel_size;
 
@@ -51,20 +52,20 @@ void main()
 	vec3 light = normalize(light_position - world_pos.xyz);
 	vec3 normal = texture(normal_texture, tex_coords).xyz * 2.0 - 1.0;
 	vec3 view = normalize(camera_position - world_pos.xyz);
-	vec3 reflection = normalize(reflect(-light_direction, normal));
+	vec3 reflection = normalize(reflect(light, normal));
 
 	float light_distance = length(light_position - world_pos.xyz);
-	float light_angle = dot(light_direction, light);
+	float linear_falloff = 1.0 / (light_distance * light_distance);
 
-	vec3 diffuse = vec3(0.0);
-	vec3 specular = vec3(0.0);
-	
-	if (light_angle < light_angle_falloff)
-	{
-		diffuse += max(dot(normal, light_direction), 0.0) * light_color * light_intensity / (light_distance * light_distance);
-		 // TODO find a proper value for shininess
-		specular += pow(max(dot(reflection, view), 0.0), 1000) * light_color * light_intensity / (light_distance * light_distance);
-	}
+	float theta = dot(light_direction, -light);
+	float epsilon =  cos(light_angle_outer_falloff) - cos(light_angle_falloff) ;
+	float angular_falloff = clamp((theta - cos(light_angle_falloff)) / epsilon, 0.0, 1.0);
+
+	float light_total_intensity =  light_intensity * angular_falloff * linear_falloff;
+
+	vec3 diffuse = max(dot(normal, light), 0.0) * light_color * light_total_intensity;
+	// TODO find a proper value for shininess ------------v
+	vec3 specular = pow(max(dot(reflection, view), 0.0), 50.0) * light_color * light_total_intensity;
 
 	light_diffuse_contribution  = vec4(diffuse, 1.0); 
 	light_specular_contribution = vec4(specular, 1.0);
