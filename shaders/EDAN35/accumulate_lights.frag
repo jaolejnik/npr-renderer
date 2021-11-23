@@ -67,6 +67,18 @@ void main()
 	// TODO find a proper value for shininess--v
 	vec3 specular = pow(max(dot(R, V), 0.0), 50.0) * light_color * light_total_intensity;
 
-	light_diffuse_contribution  = vec4(diffuse, 1.0); 
-	light_specular_contribution = vec4(specular, 1.0);
+	//Computing the projected pixel coordinates from the shadow map camera with perspective divide.
+	vec4 pixel_position_in_lightSpace=lights[light_index].view_projection*world_pos;
+	pixel_position_in_lightSpace/=pixel_position_in_lightSpace.w;
+
+	//Converting to texture coordinates.
+	pixel_position_in_lightSpace=(pixel_position_in_lightSpace*0.5f)+0.5f;
+
+	//Retrieve the depth from the shadow map camera.
+	pixel_position_in_lightSpace.z=pixel_position_in_lightSpace.z-0.0001;
+	float pixel_distance_SM=texture(shadow_texture,pixel_position_in_lightSpace.xyz);
+	
+	
+	light_diffuse_contribution  = vec4(diffuse*pixel_distance_SM, 1.0); 
+	light_specular_contribution = vec4(specular*pixel_distance_SM, 1.0);
 }
