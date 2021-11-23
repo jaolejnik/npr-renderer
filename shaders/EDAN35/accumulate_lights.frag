@@ -75,10 +75,35 @@ void main()
 	pixel_position_in_lightSpace=(pixel_position_in_lightSpace*0.5f)+0.5f;
 
 	//Retrieve the depth from the shadow map camera.
-	pixel_position_in_lightSpace.z=pixel_position_in_lightSpace.z-0.0001;
+	pixel_position_in_lightSpace.z=pixel_position_in_lightSpace.z-0.0002;
 	float pixel_distance_SM=texture(shadow_texture,pixel_position_in_lightSpace.xyz);
-	
-	
-	light_diffuse_contribution  = vec4(diffuse*pixel_distance_SM, 1.0); 
-	light_specular_contribution = vec4(specular*pixel_distance_SM, 1.0);
+	float weight_pixel_distance_SM=0.001f;
+	for(int i=0; i<2;i++){
+		if(i==0){
+			if(pixel_position_in_lightSpace.x>0.0001f){
+				pixel_position_in_lightSpace.x=pixel_position_in_lightSpace.x-0.0001f;
+			}
+		}else{
+			if(pixel_position_in_lightSpace.x<0.9990f){
+					pixel_position_in_lightSpace.x=pixel_position_in_lightSpace.x+0.0001f;
+			}
+		}
+		 for (int j=0; j<2; j++){
+			if(j==0){
+				if(pixel_position_in_lightSpace.y>0.0001f){
+					pixel_position_in_lightSpace.y=pixel_position_in_lightSpace.y-0.0001f;
+				}
+			}else{
+				if(pixel_position_in_lightSpace.y<0.9990f){
+						pixel_position_in_lightSpace.y=pixel_position_in_lightSpace.y+0.0001f;
+				}
+			}
+			float other_pixel_distance_SM=texture(shadow_texture,pixel_position_in_lightSpace.xyz);
+			weight_pixel_distance_SM+=0.25f*other_pixel_distance_SM;
+		
+	 }
+	}
+
+	light_diffuse_contribution  = vec4(diffuse*(weight_pixel_distance_SM/4), 1.0); 
+	light_specular_contribution = vec4(specular*(weight_pixel_distance_SM/4)+0.0001, 1.0);
 }
