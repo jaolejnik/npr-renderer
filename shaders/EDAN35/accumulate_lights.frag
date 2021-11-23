@@ -88,18 +88,22 @@ void main()
 					pixel_position_in_lightSpace.x=pixel_position_in_lightSpace.x+0.0001f;
 			}
 		}
-		 for (int j=0; j<2; j++){
+		for (int j=0; j<2; j++){
 			if(j==0){
-				if(pixel_position_in_lightSpace.y>0.0001f){
-					pixel_position_in_lightSpace.y=pixel_position_in_lightSpace.y-0.0001f;
+				if(pixel_position_in_lightSpace.y>0.001f){
+					pixel_position_in_lightSpace.y=pixel_position_in_lightSpace.y-0.001f;
 				}
 			}else{
-				if(pixel_position_in_lightSpace.y<0.9990f){
-						pixel_position_in_lightSpace.y=pixel_position_in_lightSpace.y+0.0001f;
+				if(pixel_position_in_lightSpace.y<0.990f){
+						pixel_position_in_lightSpace.y=pixel_position_in_lightSpace.y+0.001f;
 				}
 			}
 			float other_pixel_distance_SM=texture(shadow_texture,pixel_position_in_lightSpace.xyz);
-			weight_pixel_distance_SM+=0.25f*other_pixel_distance_SM;
+			if(pixel_distance_SM<other_pixel_distance_SM){
+				weight_pixel_distance_SM+=0.1f*other_pixel_distance_SM;
+			}else{
+				weight_pixel_distance_SM+=0.9f*other_pixel_distance_SM;
+			}
 		
 	 }
 	}
