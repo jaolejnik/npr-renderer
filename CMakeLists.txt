@@ -149,8 +149,7 @@ endfunction ()
 
 add_subdirectory ("${CMAKE_SOURCE_DIR}/src/external")
 add_subdirectory ("${CMAKE_SOURCE_DIR}/src/core")
-add_subdirectory ("${CMAKE_SOURCE_DIR}/src/EDAF80")
-add_subdirectory ("${CMAKE_SOURCE_DIR}/src/EDAN35")
+add_subdirectory ("${CMAKE_SOURCE_DIR}/src/app")
 
 install (DIRECTORY ${CMAKE_SOURCE_DIR}/shaders DESTINATION bin)
 install (DIRECTORY ${CMAKE_SOURCE_DIR}/res DESTINATION bin)

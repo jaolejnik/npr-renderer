@@ -2,7 +2,7 @@
 // functions.
 #define GLM_FORCE_PURE 1
 
-#include "assignment2.hpp"
+#include "nprr.hpp"
 
 #include "config.hpp"
 #include "core/Bonobo.h"
@@ -169,10 +169,10 @@ namespace
 	bonobo::mesh_data loadCone();
 } // namespace
 
-edan35::Assignment2::Assignment2(WindowManager &windowManager) : mCamera(0.5f * glm::half_pi<float>(),
-																		 static_cast<float>(config::resolution_x) / static_cast<float>(config::resolution_y),
-																		 0.01f * constant::scale_lengths, 30.0f * constant::scale_lengths),
-																 inputHandler(), mWindowManager(windowManager), window(nullptr)
+edan35::NPRR::NPRR(WindowManager &windowManager) : mCamera(0.5f * glm::half_pi<float>(),
+														   static_cast<float>(config::resolution_x) / static_cast<float>(config::resolution_y),
+														   0.01f * constant::scale_lengths, 30.0f * constant::scale_lengths),
+												   inputHandler(), mWindowManager(windowManager), window(nullptr)
 {
 	WindowManager::WindowDatum window_datum{inputHandler, mCamera, config::resolution_x, config::resolution_y, 0, 0, 0, 0};
 
@@ -185,12 +185,12 @@ edan35::Assignment2::Assignment2(WindowManager &windowManager) : mCamera(0.5f * 
 	bonobo::init();
 }
 
-edan35::Assignment2::~Assignment2()
+edan35::NPRR::~NPRR()
 {
 	bonobo::deinit();
 }
 
-void edan35::Assignment2::run()
+void edan35::NPRR::run()
 {
 	// Load the geometry of Sponza
 	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("sponza/sponza.obj"));
@@ -877,8 +877,8 @@ int main()
 
 	try
 	{
-		edan35::Assignment2 assignment2(framework.GetWindowManager());
-		assignment2.run();
+		edan35::NPRR nprr(framework.GetWindowManager());
+		nprr.run();
 	}
 	catch (std::runtime_error const &e)
 	{
