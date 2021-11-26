@@ -611,7 +611,6 @@ void edan35::Assignment2::run()
 				glUseProgram(accumulate_lights_shader);
 				glViewport(0, 0, framebuffer_width, framebuffer_height);
 				// XXX: Is any clearing needed?
-				// Can't really see the difference
 
 				glUniform1i(accumulate_light_shader_locations.light_index, static_cast<int>(i));
 				glUniformMatrix4fv(accumulate_light_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(light_world_matrix));
