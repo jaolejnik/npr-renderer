@@ -65,30 +65,29 @@ void main()
 	vec3 specular = pow(max(dot(R, V), 0.0), 50.0) * light_color * light_total_intensity;
 
 	//Computing the projected pixel coordinates from the shadow map camera with perspective divide.
-	vec4 pixel_position_in_lightSpace=lights[light_index].view_projection*world_pos;
-	pixel_position_in_lightSpace/=pixel_position_in_lightSpace.w;
+	vec4 pixel_position_in_lightSpace = lights[light_index].view_projection * world_pos;
+	pixel_position_in_lightSpace /= pixel_position_in_lightSpace.w;
 
 	//Converting to texture coordinates.
-	pixel_position_in_lightSpace=(pixel_position_in_lightSpace*0.5f)+0.5f;
+	pixel_position_in_lightSpace = pixel_position_in_lightSpace * 0.5f + 0.5f;
 
 	//Retrieve the depth from the shadow map camera.
-	pixel_position_in_lightSpace.z=pixel_position_in_lightSpace.z-0.0002;
-	float pixel_distance_SM=texture(shadow_texture,pixel_position_in_lightSpace.xyz);
-	float weight_pixel_distance_SM=0.0f;
-
+	pixel_position_in_lightSpace.z -= 0.0002;
+	float weight_pixel_distance_SM = 0.0;
 	vec2 shadowmap_texel_size = 1.0 / textureSize(shadow_texture, 0);
 
-	for(int i=-1; i<2;i++){
-		pixel_position_in_lightSpace.x=pixel_position_in_lightSpace.x + shadowmap_texel_size.x * i;
+	for(int i = -1; i < 2; i++)
+	{
+		pixel_position_in_lightSpace.x = pixel_position_in_lightSpace.x + shadowmap_texel_size.x * i;
 
-		for (int j=-1; j<2; j++){
-			pixel_position_in_lightSpace.y=pixel_position_in_lightSpace.y + shadowmap_texel_size.y * j;
-
-			float other_pixel_distance_SM=texture(shadow_texture,pixel_position_in_lightSpace.xyz);
-			weight_pixel_distance_SM+=other_pixel_distance_SM;
+		for (int j = -1; j < 2; j++) 
+		{
+			pixel_position_in_lightSpace.y = pixel_position_in_lightSpace.y + shadowmap_texel_size.y * j;
+			float other_pixel_distance_SM = texture(shadow_texture, pixel_position_in_lightSpace.xyz);
+			weight_pixel_distance_SM += other_pixel_distance_SM;
 		}
 	}	
 
-	light_diffuse_contribution  = vec4(diffuse*(weight_pixel_distance_SM/9), 1.0); 
-	light_specular_contribution = vec4(specular*(weight_pixel_distance_SM/9), 1.0);
+	light_diffuse_contribution  = vec4(diffuse * weight_pixel_distance_SM / 9.0, 1.0); 
+	light_specular_contribution = vec4(specular * weight_pixel_distance_SM / 9.0, 1.0);
 }
