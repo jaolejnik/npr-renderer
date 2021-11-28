@@ -48,8 +48,9 @@ namespace
 	{
 		DepthBuffer = 0u,
 		ShadowMap,
-		GBufferDiffuse,
-		GBufferSpecular,
+		// ! TO BE DELETED
+		// GBufferDiffuse,
+		// GBufferSpecular,
 		GBufferWorldSpaceNormal,
 		LightDiffuseContribution,
 		LightSpecularContribution,
@@ -113,8 +114,9 @@ namespace
 
 	struct GeometryTextureData
 	{
-		GLuint diffuse_texture_id{0u};
-		GLuint specular_texture_id{0u};
+		// ! TO BE DELETED
+		// GLuint diffuse_texture_id{0u};
+		// GLuint specular_texture_id{0u};
 		GLuint normals_texture_id{0u};
 		GLuint opacity_texture_id{0u};
 	};
@@ -128,8 +130,9 @@ namespace
 		GLuint specular_texture{0u};
 		GLuint normals_texture{0u};
 		GLuint opacity_texture{0u};
-		GLuint has_diffuse_texture{0u};
-		GLuint has_specular_texture{0u};
+		// ! TO BE DELETED
+		// GLuint has_diffuse_texture{0u};
+		// GLuint has_specular_texture{0u};
 		GLuint has_normals_texture{0u};
 		GLuint has_opacity_texture{0u};
 	};
@@ -203,20 +206,22 @@ void edan35::NPRR::run()
 	sponza_geometry_texture_data.reserve(sponza_geometry.size());
 	for (auto const &geometry : sponza_geometry)
 	{
-		auto const diffuse_texture = geometry.bindings.find("diffuse_texture");
-		auto const specular_texture = geometry.bindings.find("specular_texture");
+		// ! TO BE DELETED
+		// auto const diffuse_texture = geometry.bindings.find("diffuse_texture");
+		// auto const specular_texture = geometry.bindings.find("specular_texture");
 		auto const normals_texture = geometry.bindings.find("normals_texture");
 		auto const opacity_texture = geometry.bindings.find("opacity_texture");
 
 		GeometryTextureData data;
-		if (diffuse_texture != geometry.bindings.end())
-		{
-			data.diffuse_texture_id = diffuse_texture->second;
-		}
-		if (specular_texture != geometry.bindings.end())
-		{
-			data.specular_texture_id = specular_texture->second;
-		}
+		// ! TO BE DELETED
+		// if (diffuse_texture != geometry.bindings.end())
+		// {
+		// 	data.diffuse_texture_id = diffuse_texture->second;
+		// }
+		// if (specular_texture != geometry.bindings.end())
+		// {
+		// 	data.specular_texture_id = specular_texture->second;
+		// }
 		if (normals_texture != geometry.bindings.end())
 		{
 			data.normals_texture_id = normals_texture->second;
@@ -269,8 +274,8 @@ void edan35::NPRR::run()
 
 	GLuint fill_gbuffer_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Fill G-Buffer",
-											 {{ShaderType::vertex, "EDAN35/fill_gbuffer.vert"},
-											  {ShaderType::fragment, "EDAN35/fill_gbuffer.frag"}},
+											 {{ShaderType::vertex, "NPR/fill_gbuffer.vert"},
+											  {ShaderType::fragment, "NPR/fill_gbuffer.frag"}},
 											 fill_gbuffer_shader);
 	if (fill_gbuffer_shader == 0u)
 	{
@@ -478,12 +483,12 @@ void edan35::NPRR::run()
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::GBuffer)]);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
-			// XXX: Is any other clearing needed?
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 			glUseProgram(fill_gbuffer_shader);
-			glUniform1i(fill_gbuffer_shader_locations.diffuse_texture, 0);
-			glUniform1i(fill_gbuffer_shader_locations.specular_texture, 1);
+			// ! TO BE DELETED
+			// glUniform1i(fill_gbuffer_shader_locations.diffuse_texture, 0);
+			// glUniform1i(fill_gbuffer_shader_locations.specular_texture, 1);
 			glUniform1i(fill_gbuffer_shader_locations.normals_texture, 2);
 			glUniform1i(fill_gbuffer_shader_locations.opacity_texture, 3);
 			for (std::size_t i = 0; i < sponza_geometry.size(); ++i)
@@ -502,15 +507,16 @@ void edan35::NPRR::run()
 				auto const default_sampler = samplers[toU(Sampler::Nearest)];
 				auto const mipmap_sampler = samplers[toU(Sampler::Mipmaps)];
 
-				glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, texture_data.diffuse_texture_id != 0u ? 1 : 0);
-				glBindSampler(0u, texture_data.diffuse_texture_id != 0u ? mipmap_sampler : default_sampler);
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, texture_data.diffuse_texture_id != 0u ? texture_data.diffuse_texture_id : debug_texture_id);
+				// ! TO BE DELETED
+				// glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, texture_data.diffuse_texture_id != 0u ? 1 : 0);
+				// glBindSampler(0u, texture_data.diffuse_texture_id != 0u ? mipmap_sampler : default_sampler);
+				// glActiveTexture(GL_TEXTURE0);
+				// glBindTexture(GL_TEXTURE_2D, texture_data.diffuse_texture_id != 0u ? texture_data.diffuse_texture_id : debug_texture_id);
 
-				glUniform1i(fill_gbuffer_shader_locations.has_specular_texture, texture_data.specular_texture_id != 0u ? 1 : 0);
-				glBindSampler(1u, texture_data.specular_texture_id != 0u ? mipmap_sampler : default_sampler);
-				glActiveTexture(GL_TEXTURE1);
-				glBindTexture(GL_TEXTURE_2D, texture_data.specular_texture_id != 0u ? texture_data.specular_texture_id : debug_texture_id);
+				// glUniform1i(fill_gbuffer_shader_locations.has_specular_texture, texture_data.specular_texture_id != 0u ? 1 : 0);
+				// glBindSampler(1u, texture_data.specular_texture_id != 0u ? mipmap_sampler : default_sampler);
+				// glActiveTexture(GL_TEXTURE1);
+				// glBindTexture(GL_TEXTURE_2D, texture_data.specular_texture_id != 0u ? texture_data.specular_texture_id : debug_texture_id);
 
 				glUniform1i(fill_gbuffer_shader_locations.has_normals_texture, texture_data.normals_texture_id != 0u ? 1 : 0);
 				glBindSampler(2u, texture_data.normals_texture_id != 0u ? mipmap_sampler : default_sampler);
@@ -542,7 +548,7 @@ void edan35::NPRR::run()
 			//
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::LightAccumulation)]);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
-			// XXX: Is any clearing needed?
+
 			glClear(GL_COLOR_BUFFER_BIT);
 
 			for (size_t i = 0; i < static_cast<size_t>(lights_nb); ++i)
@@ -560,7 +566,7 @@ void edan35::NPRR::run()
 
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::ShadowMap)]);
 				glViewport(0, 0, constant::shadowmap_res_x, constant::shadowmap_res_y);
-				// XXX: Is any clearing needed?
+
 				glClear(GL_DEPTH_BUFFER_BIT);
 
 				glUseProgram(fill_shadowmap_shader);
@@ -610,7 +616,6 @@ void edan35::NPRR::run()
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::LightAccumulation)]);
 				glUseProgram(accumulate_lights_shader);
 				glViewport(0, 0, framebuffer_width, framebuffer_height);
-				// XXX: Is any clearing needed?
 
 				glUniform1i(accumulate_light_shader_locations.light_index, static_cast<int>(i));
 				glUniformMatrix4fv(accumulate_light_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(light_world_matrix));
@@ -666,10 +671,10 @@ void edan35::NPRR::run()
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::Resolve)]);
 			glUseProgram(resolve_deferred_shader);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
-			// XXX: Is any clearing needed?
 
-			bind_texture_with_sampler(GL_TEXTURE_2D, 0, resolve_deferred_shader, "diffuse_texture", textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Nearest)]);
-			bind_texture_with_sampler(GL_TEXTURE_2D, 1, resolve_deferred_shader, "specular_texture", textures[toU(Texture::GBufferSpecular)], samplers[toU(Sampler::Nearest)]);
+			// ! TO BE DELETED
+			// bind_texture_with_sampler(GL_TEXTURE_2D, 0, resolve_deferred_shader, "diffuse_texture", textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Nearest)]);
+			// bind_texture_with_sampler(GL_TEXTURE_2D, 1, resolve_deferred_shader, "specular_texture", textures[toU(Texture::GBufferSpecular)], samplers[toU(Sampler::Nearest)]);
 			bind_texture_with_sampler(GL_TEXTURE_2D, 2, resolve_deferred_shader, "light_d_texture", textures[toU(Texture::LightDiffuseContribution)], samplers[toU(Sampler::Nearest)]);
 			bind_texture_with_sampler(GL_TEXTURE_2D, 3, resolve_deferred_shader, "light_s_texture", textures[toU(Texture::LightSpecularContribution)], samplers[toU(Sampler::Nearest)]);
 
@@ -736,8 +741,9 @@ void edan35::NPRR::run()
 		//
 		if (show_textures)
 		{
-			bonobo::displayTexture({-0.95f, -0.95f}, {-0.55f, -0.55f}, textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
-			bonobo::displayTexture({-0.45f, -0.95f}, {-0.05f, -0.55f}, textures[toU(Texture::GBufferSpecular)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			// ! TO BE DELETED
+			// bonobo::displayTexture({-0.95f, -0.95f}, {-0.55f, -0.55f}, textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			// bonobo::displayTexture({-0.45f, -0.95f}, {-0.05f, -0.55f}, textures[toU(Texture::GBufferSpecular)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 			bonobo::displayTexture({0.05f, -0.95f}, {0.45f, -0.55f}, textures[toU(Texture::GBufferWorldSpaceNormal)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 			bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
 			bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::ShadowMap)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, lightProjectionNearPlane, lightProjectionFarPlane);
@@ -901,13 +907,14 @@ namespace
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, constant::shadowmap_res_x, constant::shadowmap_res_y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::ShadowMap)], "Shadow map");
 
-		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::GBufferDiffuse)]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::GBufferDiffuse)], "GBuffer diffuse");
+		// ! TO BE DELETED
+		// glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::GBufferDiffuse)]);
+		// glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		// utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::GBufferDiffuse)], "GBuffer diffuse");
 
-		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::GBufferSpecular)]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::GBufferSpecular)], "GBuffer specular");
+		// glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::GBufferSpecular)]);
+		// glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		// utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::GBufferSpecular)], "GBuffer specular");
 
 		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::GBufferWorldSpaceNormal)]);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -974,16 +981,19 @@ namespace
 		glGenFramebuffers(static_cast<GLsizei>(fbos.size()), fbos.data());
 
 		glBindFramebuffer(GL_FRAMEBUFFER, fbos[toU(FBO::GBuffer)]);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[toU(Texture::GBufferDiffuse)], 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textures[toU(Texture::GBufferSpecular)], 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, textures[toU(Texture::GBufferWorldSpaceNormal)], 0);
+		// ! TO BE DELETED
+		// glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[toU(Texture::GBufferDiffuse)], 0);
+		// glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, textures[toU(Texture::GBufferSpecular)], 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[toU(Texture::GBufferWorldSpaceNormal)], 0);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, textures[toU(Texture::DepthBuffer)], 0);
 		glReadBuffer(GL_NONE); // Disable reading back from the colour attachments, as unnecessary in this assignment.
 		// Configure the mapping from fragment shader outputs to colour attachments.
-		std::array<GLenum, 3> const gbuffer_draws = {
-			GL_COLOR_ATTACHMENT0, // The fragment shader output at location 0 will be written to colour attachment 0 (i.e. the diffuse texture).
-			GL_COLOR_ATTACHMENT1, // The fragment shader output at location 1 will be written to colour attachment 1 (i.e. the specular texture).
-			GL_COLOR_ATTACHMENT2  // The fragment shader output at location 2 will be written to colour attachment 2 (i.e. the normal texture).
+		// TODO change to not be an array
+		std::array<GLenum, 1> const gbuffer_draws = {
+			GL_COLOR_ATTACHMENT0, // The fragment shader output at location 2 will be written to colour attachment 2 (i.e. the normal texture).
+								  // ! TO BE DELETED
+								  // GL_COLOR_ATTACHMENT0, // The fragment shader output at location 0 will be written to colour attachment 0 (i.e. the diffuse texture).
+								  // GL_COLOR_ATTACHMENT1, // The fragment shader output at location 1 will be written to colour attachment 1 (i.e. the specular texture).
 		};
 		glDrawBuffers(static_cast<GLsizei>(gbuffer_draws.size()), gbuffer_draws.data());
 		validate_fbo("GBuffer");
@@ -1092,12 +1102,14 @@ namespace
 		locations.ubo_CameraViewProjTransforms = glGetUniformBlockIndex(gbuffer_shader, "CameraViewProjTransforms");
 		locations.vertex_model_to_world = glGetUniformLocation(gbuffer_shader, "vertex_model_to_world");
 		locations.normal_model_to_world = glGetUniformLocation(gbuffer_shader, "normal_model_to_world");
-		locations.diffuse_texture = glGetUniformLocation(gbuffer_shader, "diffuse_texture");
-		locations.specular_texture = glGetUniformLocation(gbuffer_shader, "specular_texture");
+		// ! TO BE DELETED
+		// locations.diffuse_texture = glGetUniformLocation(gbuffer_shader, "diffuse_texture");
+		// locations.specular_texture = glGetUniformLocation(gbuffer_shader, "specular_texture");
 		locations.normals_texture = glGetUniformLocation(gbuffer_shader, "normals_texture");
 		locations.opacity_texture = glGetUniformLocation(gbuffer_shader, "opacity_texture");
-		locations.has_diffuse_texture = glGetUniformLocation(gbuffer_shader, "has_diffuse_texture");
-		locations.has_specular_texture = glGetUniformLocation(gbuffer_shader, "has_specular_texture");
+		// ! TO BE DELETED
+		// locations.has_diffuse_texture = glGetUniformLocation(gbuffer_shader, "has_diffuse_texture");
+		// locations.has_specular_texture = glGetUniformLocation(gbuffer_shader, "has_specular_texture");
 		locations.has_normals_texture = glGetUniformLocation(gbuffer_shader, "has_normals_texture");
 		locations.has_opacity_texture = glGetUniformLocation(gbuffer_shader, "has_opacity_texture");
 
