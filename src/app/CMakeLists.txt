@@ -23,7 +23,7 @@ target_sources (
 		[[nprr.cpp]]
 )
 
-target_link_libraries (NPRR PRIVATE assignment_setup)
+target_link_libraries (NPRR PRIVATE assignment_setup parametric_shapes)
 
 install (TARGETS NPRR DESTINATION bin)
 
