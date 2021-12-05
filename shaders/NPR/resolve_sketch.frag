@@ -1,9 +1,7 @@
 #version 410
 
 uniform sampler2D diffuse_texture;
-uniform sampler2D specular_texture;
-uniform sampler2D light_d_texture;
-uniform sampler2D light_s_texture;
+
 
 in VS_OUT {
 	vec2 texcoord;
@@ -17,5 +15,5 @@ void main()
 
 	// TODO add other elements of the pipeline
 
-	frag_color =  vec4(diffuse , 1.0);
+	frag_color =  vec4(diffuse, 1.0);
 }

@@ -7,7 +7,7 @@ in VS_OUT {
 	vec3 normal;
 } fs_in;
 
-layout (location = 0) out vec4 geometry_diffuse;
+out vec4 geometry_diffuse;
 
 
 void main()

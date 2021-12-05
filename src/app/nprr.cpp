@@ -22,9 +22,13 @@
 #include <clocale>
 #include <cstdlib>
 #include <stdexcept>
+#include <random>
 
 namespace constant
 {
+	constexpr uint32_t noise_res_x = 512;
+	constexpr uint32_t noise_res_y = 512;
+
 	constexpr float scale_lengths = 100.0f; // The scene is expressed in centimetres rather than metres, hence the x100.
 }
 
@@ -36,10 +40,13 @@ namespace
 		return static_cast<std::underlying_type_t<E>>(e);
 	}
 
+	void fill_noise_data(glm::vec3 *tex_arr, GLsizei framebuffer_width, GLsizei framebuffer_height);
+
 	enum class Texture : uint32_t
 	{
 		DepthBuffer = 0u,
 		GBufferDiffuse,
+		Noise,
 		Result,
 		Count
 	};
@@ -60,6 +67,7 @@ namespace
 	enum class FBO : uint32_t
 	{
 		GBuffer = 0u,
+		Noise,
 		Resolve,
 		FinalWithDepth,
 		Count
@@ -70,6 +78,7 @@ namespace
 	enum class ElapsedTimeQuery : uint32_t
 	{
 		GbufferGeneration = 0u,
+		Noise,
 		Resolve,
 		GUI,
 		CopyToFramebuffer,
@@ -91,6 +100,11 @@ namespace
 		glm::mat4 view_projection = glm::mat4(1.0f);
 		glm::mat4 view_projection_inverse = glm::mat4(1.0f);
 	};
+
+	struct NoiseShaderLocations
+	{
+	};
+	void fillNoiseShaderLocations(GLuint noise_shader, NoiseShaderLocations &locations);
 
 	struct GBufferShaderLocations
 	{
@@ -181,6 +195,19 @@ void edan35::NPRR::run()
 	GBufferShaderLocations fill_gbuffer_shader_locations;
 	fillGBufferShaderLocations(fill_gbuffer_shader, fill_gbuffer_shader_locations);
 
+	GLuint fill_noise_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Fill noise buffer",
+											 {{ShaderType::vertex, "NPR/fill_noise.vert"},
+											  {ShaderType::fragment, "NPR/fill_noise.frag"}},
+											 fill_noise_shader);
+	if (fill_noise_shader == 0u)
+	{
+		LogError("Failed to load noise filling shader");
+		return;
+	}
+	NoiseShaderLocations fill_noise_shader_locations;
+	fillNoiseShaderLocations(fill_noise_shader, fill_noise_shader_locations);
+
 	GLuint resolve_sketch_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Resolve deferred",
 											 {{ShaderType::vertex, "NPR/resolve_sketch.vert"},
@@ -212,13 +239,29 @@ void edan35::NPRR::run()
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 
+	//
+	// Write data to the noise texture
+	//
+	// utils::opengl::debug::beginDebugGroup("Fill Noise");
+	// glBeginQuery(GL_TIME_ELAPSED, elapsed_time_queries[toU(ElapsedTimeQuery::Noise)]);
+
+	// glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::Noise)]);
+	// glViewport(0, 0, constant::noise_res_x, constant::noise_res_y);
+	// glUseProgram(fill_noise_shader);
+
+	// bonobo::drawFullscreen(); // despite the name draws to the current buffer
+
+	// glEndQuery(GL_TIME_ELAPSED);
+	// utils::opengl::debug::endDebugGroup();
+
+	glUseProgram(0u);
+
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, fbos[toU(FBO::Resolve)]);
 
 	auto seconds_nb = 0.0f;
 	std::array<GLuint64, toU(ElapsedTimeQuery::Count)> pass_elapsed_times;
 	auto lastTime = std::chrono::high_resolution_clock::now();
 	bool show_textures = true;
-	bool show_cone_wireframe = false;
 
 	bool show_logs = true;
 	bool show_gui = true;
@@ -289,7 +332,7 @@ void edan35::NPRR::run()
 		if (!shader_reload_failed)
 		{
 			//
-			// Pass 1: Render scene into the g-buffer
+			// Render scene into the g-buffer
 			//
 			utils::opengl::debug::beginDebugGroup("Fill G-buffer");
 			glBeginQuery(GL_TIME_ELAPSED, elapsed_time_queries[toU(ElapsedTimeQuery::GbufferGeneration)]);
@@ -320,9 +363,6 @@ void edan35::NPRR::run()
 
 				utils::opengl::debug::endDebugGroup();
 			}
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glBindVertexArray(0u);
-			glUseProgram(0u);
 
 			glEndQuery(GL_TIME_ELAPSED);
 			utils::opengl::debug::endDebugGroup();
@@ -340,9 +380,6 @@ void edan35::NPRR::run()
 			bind_texture_with_sampler(GL_TEXTURE_2D, 0, resolve_sketch_shader, "diffuse_texture", textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Nearest)]);
 			bonobo::drawFullscreen();
 
-			glBindSampler(3, 0u);
-			glBindSampler(2, 0u);
-			glBindSampler(1, 0u);
 			glBindSampler(0, 0u);
 			glUseProgram(0u);
 
@@ -350,8 +387,7 @@ void edan35::NPRR::run()
 			utils::opengl::debug::endDebugGroup();
 		}
 
-		auto const show_debug_elements = show_cone_wireframe || show_basis;
-		if (show_debug_elements)
+		if (show_basis)
 		{
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::FinalWithDepth)]);
 		}
@@ -365,12 +401,8 @@ void edan35::NPRR::run()
 		if (show_basis)
 		{
 			bonobo::renderBasis(basis_thickness_scale, basis_length_scale, mCamera.GetWorldToClipMatrix());
-		}
-
-		// If the basis and cone wireframe were not shown, FBO::Resolve
-		// is still bound so there is no need to rebind it.
-		if (show_debug_elements)
-		{
+			// If the basis were not shown, FBO::Resolve
+			// is still bound so there is no need to rebind it.
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::Resolve)]);
 		}
 
@@ -379,7 +411,8 @@ void edan35::NPRR::run()
 		//
 		if (show_textures)
 		{
-			bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
+			bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
+			bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 		}
 
 		//
@@ -492,6 +525,16 @@ int main()
 }
 namespace
 {
+	void fill_noise_data(glm::vec3 *tex_arr, GLsizei framebuffer_width, GLsizei framebuffer_height)
+	{
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<> dis(0.0, 1.0);
+
+		for (int i = 0; i < framebuffer_width * framebuffer_height; i++)
+			tex_arr[i] = glm::vec3(dis(gen));
+	}
+
 	Textures createTextures(GLsizei framebuffer_width, GLsizei framebuffer_height)
 	{
 		Textures textures;
@@ -508,6 +551,12 @@ namespace
 		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Result)]);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::Result)], "Final result");
+
+		glm::vec3 noise_data[constant::noise_res_x * constant::noise_res_y];
+		fill_noise_data(noise_data, constant::noise_res_x, constant::noise_res_y);
+		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Noise)]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, constant::noise_res_x, constant::noise_res_y, 0, GL_RGBA, GL_UNSIGNED_BYTE, noise_data);
+		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::Noise)], "Noise");
 
 		glBindTexture(GL_TEXTURE_2D, 0u);
 		return textures;
@@ -560,11 +609,17 @@ namespace
 		glBindFramebuffer(GL_FRAMEBUFFER, fbos[toU(FBO::GBuffer)]);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[toU(Texture::GBufferDiffuse)], 0);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, textures[toU(Texture::DepthBuffer)], 0);
-		glReadBuffer(GL_NONE); // Disable reading back from the colour attachments, as unnecessary in this assignment.
-		// Configure the mapping from fragment shader outputs to colour attachments.
+		glReadBuffer(GL_NONE);				// Disable reading back from the colour attachments, as unnecessary in this assignment.
 		glDrawBuffer(GL_COLOR_ATTACHMENT0); // The fragment shader output at location 0 will be written to colour attachment 0 (i.e. the rendering result texture).
 		validate_fbo("GBuffer");
 		utils::opengl::debug::nameObject(GL_FRAMEBUFFER, fbos[toU(FBO::GBuffer)], "GBuffer");
+
+		glBindFramebuffer(GL_FRAMEBUFFER, fbos[toU(FBO::Noise)]);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[toU(Texture::Noise)], 0);
+		glReadBuffer(GL_COLOR_ATTACHMENT0); // Colour attachment result 0 (i.e. the rendering result texture) will be blitted to the screen.
+		glDrawBuffer(GL_COLOR_ATTACHMENT0); // The fragment shader output at location 0 will be written to colour attachment 0 (i.e. the rendering result texture).
+		validate_fbo("Noise");
+		utils::opengl::debug::nameObject(GL_FRAMEBUFFER, fbos[toU(FBO::Noise)], "Noise");
 
 		glBindFramebuffer(GL_FRAMEBUFFER, fbos[toU(FBO::Resolve)]);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[toU(Texture::Result)], 0);
@@ -604,6 +659,9 @@ namespace
 			register_query(queries[toU(ElapsedTimeQuery::GbufferGeneration)]);
 			utils::opengl::debug::nameObject(GL_QUERY, queries[toU(ElapsedTimeQuery::GbufferGeneration)], "GBuffer generation");
 
+			register_query(queries[toU(ElapsedTimeQuery::Noise)]);
+			utils::opengl::debug::nameObject(GL_QUERY, queries[toU(ElapsedTimeQuery::Noise)], "Noise generation");
+
 			register_query(queries[toU(ElapsedTimeQuery::Resolve)]);
 			utils::opengl::debug::nameObject(GL_QUERY, queries[toU(ElapsedTimeQuery::Resolve)], "Resolve");
 
@@ -626,6 +684,10 @@ namespace
 
 		glBindBuffer(GL_UNIFORM_BUFFER, 0u);
 		return ubos;
+	}
+
+	void fillNoiseShaderLocations(GLuint noise_shader, NoiseShaderLocations &locations)
+	{
 	}
 
 	void fillGBufferShaderLocations(GLuint gbuffer_shader, GBufferShaderLocations &locations)
