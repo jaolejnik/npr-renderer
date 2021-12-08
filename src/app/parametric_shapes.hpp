@@ -20,8 +20,12 @@ namespace parametric_shapes
 	//! @return wrapper around OpenGL objects' name containing the geometry
 	//!         data
 	bonobo::mesh_data createQuad(float const width, float const height,
-	                             unsigned int const horizontal_split_count = 0u,
-	                             unsigned int const vertical_split_count = 0u);
+								 unsigned int const horizontal_split_count = 0u,
+								 unsigned int const vertical_split_count = 0u);
+
+	bonobo::mesh_data createDisk(float const radius,
+								 unsigned int const horizontal_split_count = 0u,
+								 unsigned int const vertical_split_count = 0u);
 
 	//! \brief Create a sphere for a given tesselation level and make it
 	//!        available to OpenGL.
@@ -43,8 +47,8 @@ namespace parametric_shapes
 	//! @return wrapper around OpenGL objects' name containing the geometry
 	//!         data
 	bonobo::mesh_data createSphere(float const radius,
-	                               unsigned int const longitude_split_count,
-	                               unsigned int const latitude_split_count);
+								   unsigned int const longitude_split_count,
+								   unsigned int const latitude_split_count);
 
 	//! \brief Create a torus for a given tesselation level and make it
 	//!        available to OpenGL.
@@ -70,9 +74,9 @@ namespace parametric_shapes
 	//! @return wrapper around OpenGL objects' name containing the geometry
 	//!         data
 	bonobo::mesh_data createTorus(float const major_radius,
-	                              float const minor_radius,
-	                              unsigned int const major_split_count,
-	                              unsigned int const minor_split_count);
+								  float const minor_radius,
+								  unsigned int const major_split_count,
+								  unsigned int const minor_split_count);
 
 	//! \brief Create a circle ring for a given tesselation level and make it
 	//!        available to OpenGL.
@@ -96,7 +100,7 @@ namespace parametric_shapes
 	//! @return wrapper around OpenGL objects' name containing the geometry
 	//!         data
 	bonobo::mesh_data createCircleRing(float const radius,
-	                                   float const spread_length,
-	                                   unsigned int const circle_split_count,
-	                                   unsigned int const spread_split_count);
+									   float const spread_length,
+									   unsigned int const circle_split_count,
+									   unsigned int const spread_split_count);
 }
