@@ -141,15 +141,18 @@ edan35::NPRR::~NPRR()
 void edan35::NPRR::run()
 {
 	// Load the geometry of Sponza
-	// auto const sponza_geometry = bonobo::loadObjects(config::resources_path("sponza/sponza.obj"));
-	std::vector<bonobo::mesh_data> sponza_geometry = {parametric_shapes::createSphere(1.0f * constant::scale_lengths, 50u, 50u)};
-	// std::vector<bonobo::mesh_data> sphere_geometry = {parametric_shapes::createSphere(10.0f, 20u, 20u)};
-
+	std::vector<bonobo::mesh_data> sphere_geometry = {parametric_shapes::createSphere(1.0f * constant::scale_lengths, 50u, 50u)};
+	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("sponza/sponza.obj"));
 	if (sponza_geometry.empty())
 	{
 		LogError("Failed to load the Sponza model");
 		return;
 	}
+
+	const std::vector<std::vector<bonobo::mesh_data>> geometry_array = {sphere_geometry, sponza_geometry};
+	const char *geometry_names[] = {"Sphere", "Sponza"};
+	int current_geometry_id = 0;
+	auto current_geometry = geometry_array[current_geometry_id];
 
 	//
 	// Setup the camera
@@ -308,7 +311,6 @@ void edan35::NPRR::run()
 
 		if (!shader_reload_failed)
 		{
-
 			//
 			// Render scene into the g-buffer
 			//
@@ -322,9 +324,9 @@ void edan35::NPRR::run()
 
 			glUseProgram(fill_gbuffer_shader);
 			glUniform3fv(fill_gbuffer_shader_locations.light_position, 1, glm::value_ptr(light_position));
-			for (std::size_t i = 0; i < sponza_geometry.size(); ++i)
+			for (std::size_t i = 0; i < current_geometry.size(); ++i)
 			{
-				auto const &geometry = sponza_geometry[i];
+				auto const &geometry = current_geometry[i];
 
 				utils::opengl::debug::beginDebugGroup(geometry.name);
 
@@ -345,6 +347,8 @@ void edan35::NPRR::run()
 
 			glEndQuery(GL_TIME_ELAPSED);
 			utils::opengl::debug::endDebugGroup();
+
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 			//
 			// Pass 3: Compute final image using both the g-buffer and  the light accumulation buffer
@@ -440,7 +444,9 @@ void edan35::NPRR::run()
 		opened = ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
 		if (opened)
 		{
-			bonobo::uiSelectPolygonMode("Polygon mode", polygon_mode);
+			bool changed = ImGui::Combo("Geometry", &current_geometry_id, geometry_names, IM_ARRAYSIZE(geometry_names), 3);
+			current_geometry = geometry_array[current_geometry_id];
+			bonobo::uiSelectPolygonMode("Polygon mode (TODO)", polygon_mode);
 			ImGui::Separator();
 			ImGui::Checkbox("Show basis", &show_basis);
 			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
