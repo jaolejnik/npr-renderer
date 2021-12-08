@@ -3,6 +3,7 @@
 #define GLM_FORCE_PURE 1
 
 #include "nprr.hpp"
+#include "parametric_shapes.hpp"
 
 #include "config.hpp"
 #include "core/Bonobo.h"
@@ -140,7 +141,10 @@ edan35::NPRR::~NPRR()
 void edan35::NPRR::run()
 {
 	// Load the geometry of Sponza
-	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("sponza/sponza.obj"));
+	// auto const sponza_geometry = bonobo::loadObjects(config::resources_path("sponza/sponza.obj"));
+	std::vector<bonobo::mesh_data> sponza_geometry = {parametric_shapes::createSphere(1.0f * constant::scale_lengths, 50u, 50u)};
+	// std::vector<bonobo::mesh_data> sphere_geometry = {parametric_shapes::createSphere(10.0f, 20u, 20u)};
+
 	if (sponza_geometry.empty())
 	{
 		LogError("Failed to load the Sponza model");
@@ -195,19 +199,6 @@ void edan35::NPRR::run()
 	GBufferShaderLocations fill_gbuffer_shader_locations;
 	fillGBufferShaderLocations(fill_gbuffer_shader, fill_gbuffer_shader_locations);
 
-	GLuint fill_noise_shader = 0u;
-	program_manager.CreateAndRegisterProgram("Fill noise buffer",
-											 {{ShaderType::vertex, "NPR/fill_noise.vert"},
-											  {ShaderType::fragment, "NPR/fill_noise.frag"}},
-											 fill_noise_shader);
-	if (fill_noise_shader == 0u)
-	{
-		LogError("Failed to load noise filling shader");
-		return;
-	}
-	NoiseShaderLocations fill_noise_shader_locations;
-	fillNoiseShaderLocations(fill_noise_shader, fill_noise_shader_locations);
-
 	GLuint resolve_sketch_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Resolve deferred",
 											 {{ShaderType::vertex, "NPR/resolve_sketch.vert"},
@@ -234,25 +225,10 @@ void edan35::NPRR::run()
 		glBindSampler(slot, sampler);
 	};
 
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 	glClearDepthf(1.0f);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
-
-	//
-	// Write data to the noise texture
-	//
-	// utils::opengl::debug::beginDebugGroup("Fill Noise");
-	// glBeginQuery(GL_TIME_ELAPSED, elapsed_time_queries[toU(ElapsedTimeQuery::Noise)]);
-
-	// glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::Noise)]);
-	// glViewport(0, 0, constant::noise_res_x, constant::noise_res_y);
-	// glUseProgram(fill_noise_shader);
-
-	// bonobo::drawFullscreen(); // despite the name draws to the current buffer
-
-	// glEndQuery(GL_TIME_ELAPSED);
-	// utils::opengl::debug::endDebugGroup();
 
 	glUseProgram(0u);
 
@@ -262,6 +238,7 @@ void edan35::NPRR::run()
 	std::array<GLuint64, toU(ElapsedTimeQuery::Count)> pass_elapsed_times;
 	auto lastTime = std::chrono::high_resolution_clock::now();
 	bool show_textures = true;
+	auto polygon_mode = bonobo::polygon_mode_t::fill;
 
 	bool show_logs = true;
 	bool show_gui = true;
@@ -331,6 +308,7 @@ void edan35::NPRR::run()
 
 		if (!shader_reload_failed)
 		{
+
 			//
 			// Render scene into the g-buffer
 			//
@@ -340,6 +318,7 @@ void edan35::NPRR::run()
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::GBuffer)]);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+			bonobo::changePolygonMode(polygon_mode);
 
 			glUseProgram(fill_gbuffer_shader);
 			glUniform3fv(fill_gbuffer_shader_locations.light_position, 1, glm::value_ptr(light_position));
@@ -461,6 +440,8 @@ void edan35::NPRR::run()
 		opened = ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
 		if (opened)
 		{
+			bonobo::uiSelectPolygonMode("Polygon mode", polygon_mode);
+			ImGui::Separator();
 			ImGui::Checkbox("Show basis", &show_basis);
 			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
 			ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f, 100.0f);
