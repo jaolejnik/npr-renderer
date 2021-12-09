@@ -143,14 +143,15 @@ void edan35::NPRR::run()
 	// Load the geometry of Sponza
 	std::vector<bonobo::mesh_data> sphere_geometry = {parametric_shapes::createSphere(1.0f * constant::scale_lengths, 50u, 50u)};
 	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("sponza/sponza.obj"));
+	auto const cube_geometry = bonobo::loadObjects(config::resources_path("cube.obj"));
 	if (sponza_geometry.empty())
 	{
 		LogError("Failed to load the Sponza model");
 		return;
 	}
 
-	const std::vector<std::vector<bonobo::mesh_data>> geometry_array = {sphere_geometry, sponza_geometry};
-	const char *geometry_names[] = {"Sphere", "Sponza"};
+	const std::vector<std::vector<bonobo::mesh_data>> geometry_array = {sphere_geometry, cube_geometry, sponza_geometry};
+	const char *geometry_names[] = {"Sphere", "Cube", "Sponza"};
 	int current_geometry_id = 0;
 	auto current_geometry = geometry_array[current_geometry_id];
 
@@ -213,7 +214,7 @@ void edan35::NPRR::run()
 		return;
 	}
 
-	auto light_position = glm::vec3(0.0f, 10.0f, 0.0f) * constant::scale_lengths;
+	auto light_position = glm::vec3(2.5f, 10.0f, 4.0f) * constant::scale_lengths;
 	auto const set_uniforms = [](GLuint /*program*/) {};
 
 	ViewProjTransforms camera_view_proj_transforms;
@@ -446,7 +447,7 @@ void edan35::NPRR::run()
 		{
 			bool changed = ImGui::Combo("Geometry", &current_geometry_id, geometry_names, IM_ARRAYSIZE(geometry_names), 3);
 			current_geometry = geometry_array[current_geometry_id];
-			bonobo::uiSelectPolygonMode("Polygon mode (TODO)", polygon_mode);
+			bonobo::uiSelectPolygonMode("Polygon mode", polygon_mode);
 			ImGui::Separator();
 			ImGui::Checkbox("Show basis", &show_basis);
 			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
