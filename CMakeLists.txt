@@ -153,3 +153,7 @@ add_subdirectory ("${CMAKE_SOURCE_DIR}/src/app")
 
 install (DIRECTORY ${CMAKE_SOURCE_DIR}/shaders DESTINATION bin)
 install (DIRECTORY ${CMAKE_SOURCE_DIR}/res DESTINATION bin)
+file(DOWNLOAD 
+https://gist.githubusercontent.com/jaolejnik/3e4cf7422f37260156cf7ae1dc4d7624/raw/e8eec9430754c09dc3e027bdbb83b67a224d5e79/cube.obj
+"${CMAKE_CURRENT_SOURCE_DIR}/res/cube.obj"
+)
