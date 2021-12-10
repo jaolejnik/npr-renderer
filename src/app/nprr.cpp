@@ -540,13 +540,15 @@ namespace
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::Result)], "Final result");
 
-		glm::vec3 noise_data[constant::noise_res_x * constant::noise_res_y];
+		glm::vec3 *noise_data = new glm::vec3[constant::noise_res_x * constant::noise_res_y];
 		fill_noise_data(noise_data, constant::noise_res_x, constant::noise_res_y);
 		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Noise)]);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, constant::noise_res_x, constant::noise_res_y, 0, GL_RGBA, GL_UNSIGNED_BYTE, noise_data);
 		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::Noise)], "Noise");
 
 		glBindTexture(GL_TEXTURE_2D, 0u);
+		delete[] noise_data;
+
 		return textures;
 	}
 
