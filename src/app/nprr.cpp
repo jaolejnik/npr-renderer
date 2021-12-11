@@ -136,7 +136,7 @@ edan35::NPRR::~NPRR()
 
 void edan35::NPRR::run()
 {
-	auto diffuse_texture = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_coll1_2k.jpg"));
+	auto diffuse_texture = bonobo::loadTexture2D(config::resources_path("textures/Paper_Wrinkled_001_basecolor.jpg"));
 
 	// Load the geometry of Sponza
 	std::vector<bonobo::mesh_data> sphere_geometry = {parametric_shapes::createSphere(1.0f * constant::scale_lengths, 50u, 50u)};
