@@ -102,17 +102,13 @@ namespace
 		glm::mat4 view_projection_inverse = glm::mat4(1.0f);
 	};
 
-	struct NoiseShaderLocations
-	{
-	};
-	void fillNoiseShaderLocations(GLuint noise_shader, NoiseShaderLocations &locations);
-
 	struct GBufferShaderLocations
 	{
 		GLuint ubo_CameraViewProjTransforms{0u};
 		GLuint vertex_model_to_world{0u};
 		GLuint normal_model_to_world{0u};
 		GLuint light_position{0u};
+		GLuint has_diffuse_texture{0u};
 	};
 	void fillGBufferShaderLocations(GLuint gbuffer_shader, GBufferShaderLocations &locations);
 } // namespace
@@ -140,10 +136,12 @@ edan35::NPRR::~NPRR()
 
 void edan35::NPRR::run()
 {
+	auto diffuse_texture = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_coll1_2k.jpg"));
+
 	// Load the geometry of Sponza
 	std::vector<bonobo::mesh_data> sphere_geometry = {parametric_shapes::createSphere(1.0f * constant::scale_lengths, 50u, 50u)};
-	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("sponza/sponza.obj"));
 	auto const cube_geometry = bonobo::loadObjects(config::resources_path("cube.obj"));
+	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("sponza/sponza.obj"));
 	if (sponza_geometry.empty())
 	{
 		LogError("Failed to load the Sponza model");
@@ -336,6 +334,14 @@ void edan35::NPRR::run()
 
 				glUniformMatrix4fv(fill_gbuffer_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
 				glUniformMatrix4fv(fill_gbuffer_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
+
+				auto const default_sampler = samplers[toU(Sampler::Nearest)];
+				auto const mipmap_sampler = samplers[toU(Sampler::Mipmaps)];
+
+				glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, diffuse_texture);
+				glBindSampler(0u, mipmap_sampler);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, diffuse_texture);
 
 				glBindVertexArray(geometry.vao);
 				if (geometry.ibo != 0u)
@@ -676,16 +682,13 @@ namespace
 		return ubos;
 	}
 
-	void fillNoiseShaderLocations(GLuint noise_shader, NoiseShaderLocations &locations)
-	{
-	}
-
 	void fillGBufferShaderLocations(GLuint gbuffer_shader, GBufferShaderLocations &locations)
 	{
 		locations.ubo_CameraViewProjTransforms = glGetUniformBlockIndex(gbuffer_shader, "CameraViewProjTransforms");
 		locations.vertex_model_to_world = glGetUniformLocation(gbuffer_shader, "vertex_model_to_world");
 		locations.normal_model_to_world = glGetUniformLocation(gbuffer_shader, "normal_model_to_world");
 		locations.light_position = glGetUniformLocation(gbuffer_shader, "light_position");
+		locations.has_diffuse_texture = glGetUniformLocation(gbuffer_shader, "has_diffuse_texture");
 
 		glUniformBlockBinding(gbuffer_shader, locations.ubo_CameraViewProjTransforms, toU(UBO::CameraViewProjTransforms));
 	}

@@ -22,13 +22,19 @@ layout (location = 4) in vec3 binormal;
 
 out VS_OUT {
 	vec3 vertex;
+	vec2 texcoord;
 	vec3 normal;
+	vec3 tangent;
+	vec3 binormal;
 } vs_out;
 
 
 void main() {
 	vs_out.vertex = vec3(vertex_model_to_world * vec4(vertex, 1.0));
-	vs_out.normal = vec3(normal_model_to_world * vec4(normal, 0.0));
+	vs_out.texcoord = texcoord.xy;
+	vs_out.normal   = normalize(normal);
+	vs_out.tangent  = normalize(tangent);
+	vs_out.binormal = normalize(binormal);
 
 	gl_Position = camera.view_projection * vertex_model_to_world * vec4(vertex, 1.0);
 }
