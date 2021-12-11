@@ -9,7 +9,6 @@ out/
 dependencies/
 
 # Resources folder
-res/
 res.zip
 
 # Application produced files
