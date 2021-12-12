@@ -346,7 +346,7 @@ void edan35::NPRR::run()
 
 				glBindVertexArray(geometry.vao);
 				if (geometry.ibo != 0u)
-					glDrawElements(geometry.drawing_mode, geometry.indices_nb, GL_UNSIGNED_INT, reinterpret_cast<GLvoid const *>(0x0));
+					glDrawElements(GL_TRIANGLES_ADJACENCY, geometry.adjacency_nb, GL_UNSIGNED_INT, reinterpret_cast<GLvoid const *>(0x0));
 				else
 					glDrawArrays(geometry.drawing_mode, 0, geometry.vertices_nb);
 

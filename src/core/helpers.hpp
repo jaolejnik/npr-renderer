@@ -16,48 +16,55 @@ namespace bonobo
 {
 	//! \brief Formalise mapping between an OpenGL VAO attribute binding,
 	//!        and the meaning of that attribute.
-	enum class shader_bindings : unsigned int{
+	enum class shader_bindings : unsigned int
+	{
 		vertices = 0u, //!< = 0, value of the binding point for vertices
-		normals,       //!< = 1, value of the binding point for normals
-		texcoords,     //!< = 2, value of the binding point for texcoords
-		tangents,      //!< = 3, value of the binding point for tangents
-		binormals      //!< = 4, value of the binding point for binormals
+		normals,	   //!< = 1, value of the binding point for normals
+		texcoords,	   //!< = 2, value of the binding point for texcoords
+		tangents,	   //!< = 3, value of the binding point for tangents
+		binormals	   //!< = 4, value of the binding point for binormals
 	};
 
 	//! \brief Association of a sampler name used in GLSL to a
 	//!        corresponding texture ID.
 	using texture_bindings = std::unordered_map<std::string, GLuint>;
+	// using edge_map = std::unordered_map<Edge, GLuint>;
 
-	struct material_data {
-		glm::vec3 diffuse{ 0.0f };
-		glm::vec3 specular{ 0.0f };
-		glm::vec3 ambient{ 0.0f };
-		glm::vec3 emissive{ 0.0f };
-		float shininess{ 0.0f };
-		float indexOfRefraction{ 1.0f };
-		float opacity{ 1.0f };
+	struct material_data
+	{
+		glm::vec3 diffuse{0.0f};
+		glm::vec3 specular{0.0f};
+		glm::vec3 ambient{0.0f};
+		glm::vec3 emissive{0.0f};
+		float shininess{0.0f};
+		float indexOfRefraction{1.0f};
+		float opacity{1.0f};
 	};
 
 	//! \brief Contains the data for a mesh in OpenGL.
-	struct mesh_data {
-		GLuint vao{0u};                          //!< OpenGL name of the Vertex Array Object
-		GLuint bo{0u};                           //!< OpenGL name of the Buffer Object
-		GLuint ibo{0u};                          //!< OpenGL name of the Buffer Object for indices
-		GLsizei vertices_nb{0};                  //!< number of vertices stored in bo
-		GLsizei indices_nb{0};                   //!< number of indices stored in ibo
-		texture_bindings bindings{};             //!< texture bindings for this mesh
-		material_data material{};                //!< constant values for the material of this mesh
-		GLenum drawing_mode{GL_TRIANGLES};       //!< OpenGL drawing mode, i.e. GL_TRIANGLES, GL_LINES, etc.
-		std::string name{"un-named mesh"};       //!< Name of the mesh; used for debugging purposes.
+	struct mesh_data
+	{
+		GLuint vao{0u};					   //!< OpenGL name of the Vertex Array Object
+		GLuint bo{0u};					   //!< OpenGL name of the Buffer Object
+		GLuint ibo{0u};					   //!< OpenGL name of the Buffer Object for indices
+		GLsizei vertices_nb{0};			   //!< number of vertices stored in bo
+		GLsizei indices_nb{0};			   //!< number of indices stored in ibo
+		GLsizei adjacency_nb{0};		   //!< adjacencies for the mesh
+		texture_bindings bindings{};	   //!< texture bindings for this mesh
+		material_data material{};		   //!< constant values for the material of this mesh
+		GLenum drawing_mode{GL_TRIANGLES}; //!< OpenGL drawing mode, i.e. GL_TRIANGLES, GL_LINES, etc.
+		std::string name{"un-named mesh"}; //!< Name of the mesh; used for debugging purposes.
 	};
 
-	enum class cull_mode_t : unsigned int {
+	enum class cull_mode_t : unsigned int
+	{
 		disabled = 0u,
 		back_faces,
 		front_faces
 	};
 
-	enum class polygon_mode_t : unsigned int {
+	enum class polygon_mode_t : unsigned int
+	{
 		fill = 0u,
 		line,
 		point
@@ -74,7 +81,7 @@ namespace bonobo
 	//! @param [in] filename of the object/scene file to load.
 	//! @return a vector of filled in `mesh_data` structures, one per
 	//!         object found in the input file
-	std::vector<mesh_data> loadObjects(std::string const& filename);
+	std::vector<mesh_data> loadObjects(std::string const &filename);
 
 	//! \brief Creates an OpenGL texture without any content nor parameters.
 	//!
@@ -89,19 +96,19 @@ namespace bonobo
 	//! @param [in] type data type of the pixel data
 	//! @param [in] data what to put in the texture
 	GLuint createTexture(uint32_t width, uint32_t height,
-	                     GLenum target = GL_TEXTURE_2D,
-	                     GLint internal_format = GL_RGBA,
-	                     GLenum format = GL_RGBA,
-	                     GLenum type = GL_UNSIGNED_BYTE,
-	                     GLvoid const* data = nullptr);
+						 GLenum target = GL_TEXTURE_2D,
+						 GLint internal_format = GL_RGBA,
+						 GLenum format = GL_RGBA,
+						 GLenum type = GL_UNSIGNED_BYTE,
+						 GLvoid const *data = nullptr);
 
 	//! \brief Load an image into an OpenGL 2D-texture.
 	//!
 	//! @param [in] filename of the image.
 	//! @param [in] generate_mipmap whether or not to generate a mipmap hierarchy
 	//! @return the name of the OpenGL 2D-texture
-	GLuint loadTexture2D(std::string const& filename,
-	                     bool generate_mipmap = true);
+	GLuint loadTexture2D(std::string const &filename,
+						 bool generate_mipmap = true);
 
 	//! \brief Load six images into an OpenGL cubemap-texture.
 	//!
@@ -113,10 +120,10 @@ namespace bonobo
 	//! @param [in] negz path to the texture on the front of the cubemap
 	//! @param [in] generate_mipmap whether or not to generate a mipmap hierarchy
 	//! @return the name of the OpenGL cubemap-texture
-	GLuint loadTextureCubeMap(std::string const& posx, std::string const& negx,
-                                  std::string const& posy, std::string const& negy,
-                                  std::string const& posz, std::string const& negz,
-                                  bool generate_mipmap = true);
+	GLuint loadTextureCubeMap(std::string const &posx, std::string const &negx,
+							  std::string const &posy, std::string const &negy,
+							  std::string const &posz, std::string const &negz,
+							  bool generate_mipmap = true);
 
 	//! \brief Create an OpenGL program consisting of a vertex and a
 	//!        fragment shader.
@@ -126,8 +133,8 @@ namespace bonobo
 	//! @param [in] frag_shader_source_path of the fragment shader source
 	//!             code, relative to the `shaders/` folder
 	//! @return the name of the OpenGL shader program
-	GLuint createProgram(std::string const& vert_shader_source_path,
-	                     std::string const& frag_shader_source_path);
+	GLuint createProgram(std::string const &vert_shader_source_path,
+						 std::string const &frag_shader_source_path);
 
 	//! \brief Display the current texture in the specified rectangle.
 	//!
@@ -150,11 +157,11 @@ namespace bonobo
 	//!             textures; it is ignored if |linearise| is false.
 	//! @param [in] farPlane the far plane used when linearising depth
 	//!             textures; it is ignored if |linearise| is false.
-	void displayTexture(glm::vec2 const& lower_left,
-	                    glm::vec2 const& upper_right, GLuint texture,
-	                    GLuint sampler, glm::ivec4 const& swizzle,
-	                    glm::ivec2 const& window_size, bool linearise = false,
-	                    float nearPlane = 0.0f, float farPlane = 0.0f);
+	void displayTexture(glm::vec2 const &lower_left,
+						glm::vec2 const &upper_right, GLuint texture,
+						GLuint sampler, glm::ivec4 const &swizzle,
+						glm::ivec2 const &window_size, bool linearise = false,
+						float nearPlane = 0.0f, float farPlane = 0.0f);
 
 	//! \brief Create an OpenGL FrameBuffer Object using the specified
 	//!        attachments.
@@ -164,14 +171,14 @@ namespace bonobo
 	//! @param [in] depth_attachment a texture, if any, to use as depth
 	//!             attachment
 	//! @return the name of the OpenGL FBO
-	GLuint createFBO(std::vector<GLuint> const& color_attachments,
-	                 GLuint depth_attachment = 0u);
+	GLuint createFBO(std::vector<GLuint> const &color_attachments,
+					 GLuint depth_attachment = 0u);
 
 	//! \brief Create an OpenGL sampler and set it up.
 	//!
 	//! @param [in] setup a lambda function to parameterise the sampler
 	//! @return the name of the OpenGL sampler
-	GLuint createSampler(std::function<void (GLuint)> const& setup);
+	GLuint createSampler(std::function<void(GLuint)> const &setup);
 
 	//! \brief Draw full screen.
 	void drawFullscreen();
@@ -186,7 +193,7 @@ namespace bonobo
 	//! @param [in] view_projection Matrix transforming from world-space to clip-space
 	//! @param [in] world Matrix transforming from model-space to
 	//!             world-space
-	void renderBasis(float thickness_scale, float length_scale, glm::mat4 const& view_projection, glm::mat4 const& world = glm::mat4(1.0f));
+	void renderBasis(float thickness_scale, float length_scale, glm::mat4 const &view_projection, glm::mat4 const &world = glm::mat4(1.0f));
 
 	//! \brief Add a combo box to the current ImGUI window, to choose a
 	//!        cull mode.
@@ -196,7 +203,7 @@ namespace bonobo
 	//!                which will be modified to contain the newly selected
 	//!                one.
 	//! @return whether the selection was changed
-	bool uiSelectCullMode(std::string const& label, enum cull_mode_t& cull_mode) noexcept;
+	bool uiSelectCullMode(std::string const &label, enum cull_mode_t &cull_mode) noexcept;
 
 	//! \brief Enable or disable culling, and call glCullFace with the
 	//!        specified cull mode.
@@ -210,7 +217,7 @@ namespace bonobo
 	//!                which will be modified to contain the newly selected
 	//!                one.
 	//! @return whether the selection was changed
-	bool uiSelectPolygonMode(std::string const& label, enum polygon_mode_t& polygon_mode) noexcept;
+	bool uiSelectPolygonMode(std::string const &label, enum polygon_mode_t &polygon_mode) noexcept;
 
 	//! \brief Call glPolygonMode for both front and back faces, with the
 	//!        specified polygon mode.
