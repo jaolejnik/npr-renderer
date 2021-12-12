@@ -139,17 +139,18 @@ void edan35::NPRR::run()
 	auto diffuse_texture = bonobo::loadTexture2D(config::resources_path("textures/Paper_Wrinkled_001_basecolor.jpg"));
 
 	// Load the geometry of Sponza
-	std::vector<bonobo::mesh_data> sphere_geometry = {parametric_shapes::createSphere(1.0f * constant::scale_lengths, 50u, 50u)};
-	auto const cube_geometry = bonobo::loadObjects(config::resources_path("cube.obj"));
-	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("sponza/sponza.obj"));
+	auto const sphere_geometry = bonobo::loadObjects(config::resources_path("scenes/sphere.obj"));
+	auto const cube_geometry = bonobo::loadObjects(config::resources_path("scenes/cube.obj"));
+	auto const face_geometry = bonobo::loadObjects(config::resources_path("scenes/face.obj"));
+	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("scenes/sponza.obj"));
 	if (sponza_geometry.empty())
 	{
 		LogError("Failed to load the Sponza model");
 		return;
 	}
 
-	const std::vector<std::vector<bonobo::mesh_data>> geometry_array = {sphere_geometry, cube_geometry, sponza_geometry};
-	const char *geometry_names[] = {"Sphere", "Cube", "Sponza"};
+	const std::vector<std::vector<bonobo::mesh_data>> geometry_array = {sphere_geometry, cube_geometry, face_geometry, sponza_geometry};
+	const char *geometry_names[] = {"Sphere", "Cube", "Face", "Sponza"};
 	int current_geometry_id = 0;
 	auto current_geometry = geometry_array[current_geometry_id];
 
