@@ -5,6 +5,8 @@ layout (triangles_adjacency) in;
 layout (line_strip, max_vertices=6) out;
 
 uniform vec3 light_position;
+// uniform vec2 inverse_screen_resolution;
+// uniform sampler2D depth_texture;
 
 in VS_OUT {
     vec3 vertex;

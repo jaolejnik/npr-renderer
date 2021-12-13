@@ -82,6 +82,7 @@ namespace
 	{
 		GbufferGeneration = 0u,
 		Noise,
+		Silhouette,
 		Resolve,
 		GUI,
 		CopyToFramebuffer,
@@ -120,6 +121,7 @@ namespace
 		GLuint vertex_model_to_world{0u};
 		GLuint normal_model_to_world{0u};
 		GLuint light_position{0u};
+		GLuint inverse_screen_resolution{0u};
 	};
 	void fillSilhouetteShaderLocations(GLuint silhouette_shader, SilhouetteShaderLocations &locations);
 } // namespace
@@ -269,7 +271,7 @@ void edan35::NPRR::run()
 		glBindSampler(slot, sampler);
 	};
 
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClearDepthf(1.0f);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -362,7 +364,6 @@ void edan35::NPRR::run()
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::GBuffer)]);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
-			// glClearColor(0.0, 0.0, 0.0, 1.0);
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 			glUseProgram(fill_gbuffer_shader);
@@ -379,11 +380,8 @@ void edan35::NPRR::run()
 				glUniformMatrix4fv(fill_gbuffer_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
 				glUniformMatrix4fv(fill_gbuffer_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
 
-				auto const default_sampler = samplers[toU(Sampler::Nearest)];
-				auto const mipmap_sampler = samplers[toU(Sampler::Mipmaps)];
-
-				glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, diffuse_texture);
-				glBindSampler(0u, mipmap_sampler);
+				glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, 1);
+				glBindSampler(0u, samplers[toU(Sampler::Mipmaps)]);
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, diffuse_texture);
 				glBindVertexArray(geometry.vao);
@@ -403,11 +401,10 @@ void edan35::NPRR::run()
 			// Pass 2: Find the silhouette
 			//
 			utils::opengl::debug::beginDebugGroup("Silhouette");
-			// glBeginQuery(GL_TIME_ELAPSED, elapsed_time_queries[toU(ElapsedTimeQuery::GbufferGeneration)]);
+			glBeginQuery(GL_TIME_ELAPSED, elapsed_time_queries[toU(ElapsedTimeQuery::Silhouette)]);
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::Silhouette)]);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
-			glClearColor(1.0, 1.0, 1.0, 1.0);
 			glClear(GL_COLOR_BUFFER_BIT);
 
 			glUseProgram(silhouette_shader);
@@ -431,7 +428,7 @@ void edan35::NPRR::run()
 				utils::opengl::debug::endDebugGroup();
 			}
 
-			// glEndQuery(GL_TIME_ELAPSED);
+			glEndQuery(GL_TIME_ELAPSED);
 			utils::opengl::debug::endDebugGroup();
 			glBindVertexArray(0u);
 			glUseProgram(0u);
@@ -510,6 +507,11 @@ void edan35::NPRR::run()
 				ImGui::Text("Gbuffer gen.");
 				ImGui::TableNextColumn();
 				ImGui::Text("%.3f", pass_elapsed_times[toU(ElapsedTimeQuery::GbufferGeneration)] / 1000000.0f);
+
+				ImGui::TableNextColumn();
+				ImGui::Text("Silhouette det.");
+				ImGui::TableNextColumn();
+				ImGui::Text("%.3f", pass_elapsed_times[toU(ElapsedTimeQuery::Silhouette)] / 1000000.0f);
 
 				ImGui::TableNextColumn();
 				ImGui::Text("Resolve");
@@ -792,6 +794,7 @@ namespace
 		locations.vertex_model_to_world = glGetUniformLocation(silhouette_shader, "vertex_model_to_world");
 		locations.normal_model_to_world = glGetUniformLocation(silhouette_shader, "normal_model_to_world");
 		locations.light_position = glGetUniformLocation(silhouette_shader, "light_position");
+		locations.inverse_screen_resolution = glGetUniformLocation(silhouette_shader, "inverse_screen_resolution");
 
 		glUniformBlockBinding(silhouette_shader, locations.ubo_CameraViewProjTransforms, toU(UBO::CameraViewProjTransforms));
 	}
