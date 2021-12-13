@@ -17,7 +17,9 @@ void main()
 
 	if ((dot(silhouette, vec3(1.0)) / 3) < 0.9)
 		diffuse = silhouette;
-	// TODO add other elements of the pipeline
 
-	frag_color =  vec4(diffuse, 1.0);
+	// TODO add other elements of the pipeline
+					// !TEMPORARY CHANGE
+	frag_color =  vec4(silhouette, 1.0);
+	// frag_color =  vec4(diffuse, 1.0);
 }

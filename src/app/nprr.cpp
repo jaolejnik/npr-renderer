@@ -175,10 +175,10 @@ void edan35::NPRR::run()
 		"Sponza",
 	};
 	const GLuint line_width[] = {
-		10u,
-		10u,
-		3u,
-		2u,
+		20u,
+		20u,
+		12u,
+		5u,
 	};
 	int current_geometry_id = 0;
 	auto current_geometry = geometry_array[current_geometry_id];
@@ -380,7 +380,7 @@ void edan35::NPRR::run()
 				glUniformMatrix4fv(fill_gbuffer_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
 				glUniformMatrix4fv(fill_gbuffer_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
 
-				glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, 1);
+				// glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, 1);
 				glBindSampler(0u, samplers[toU(Sampler::Mipmaps)]);
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, diffuse_texture);
@@ -700,6 +700,7 @@ namespace
 
 		glBindFramebuffer(GL_FRAMEBUFFER, fbos[toU(FBO::Silhouette)]);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[toU(Texture::Silhouette)], 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, textures[toU(Texture::DepthBuffer)], 0);
 		glReadBuffer(GL_NONE);				// Disable reading back from the colour attachments, as unnecessary in this assignment.
 		glDrawBuffer(GL_COLOR_ATTACHMENT0); // The fragment shader output at location 0 will be written to colour attachment 0 (i.e. the rendering result texture).
 		validate_fbo("Silhouette");
