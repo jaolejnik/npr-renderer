@@ -27,8 +27,8 @@
 
 namespace constant
 {
-	constexpr uint32_t noise_res_x = 512;
-	constexpr uint32_t noise_res_y = 512;
+	constexpr uint32_t noise_res_x = 1024;
+	constexpr uint32_t noise_res_y = 1024;
 
 	constexpr float scale_lengths = 100.0f; // The scene is expressed in centimetres rather than metres, hence the x100.
 }
@@ -42,6 +42,15 @@ namespace
 	}
 
 	void fill_noise_data(glm::vec3 *tex_arr, GLsizei framebuffer_width, GLsizei framebuffer_height);
+
+	enum class Objects : uint32_t
+	{
+		Sphere,
+		Cube,
+		Face,
+		Sponza,
+		Count
+	};
 
 	enum class Texture : uint32_t
 	{
@@ -111,7 +120,11 @@ namespace
 		GLuint vertex_model_to_world{0u};
 		GLuint normal_model_to_world{0u};
 		GLuint light_position{0u};
-		GLuint has_diffuse_texture{0u};
+		GLuint camera_position{0u};
+		GLuint ring{0u};
+		GLuint thickness{0u};
+		GLuint noise_texture{0u};
+		GLuint inverse_screen_resolution{0u};
 	};
 	void fillGBufferShaderLocations(GLuint gbuffer_shader, GBufferShaderLocations &locations);
 
@@ -121,7 +134,6 @@ namespace
 		GLuint vertex_model_to_world{0u};
 		GLuint normal_model_to_world{0u};
 		GLuint light_position{0u};
-		GLuint inverse_screen_resolution{0u};
 	};
 	void fillSilhouetteShaderLocations(GLuint silhouette_shader, SilhouetteShaderLocations &locations);
 } // namespace
@@ -180,7 +192,7 @@ void edan35::NPRR::run()
 		12u,
 		5u,
 	};
-	int current_geometry_id = 0;
+	int current_geometry_id = toU(Objects::Sphere);
 	auto current_geometry = geometry_array[current_geometry_id];
 
 	//
@@ -256,7 +268,7 @@ void edan35::NPRR::run()
 		return;
 	}
 
-	auto light_position = glm::vec3(2.5f, 10.0f, 4.0f) * constant::scale_lengths;
+	// auto light_position = glm::vec3(2.5f, 10.0f, 4.0f) * constant::scale_lengths;
 	auto const set_uniforms = [](GLuint /*program*/) {};
 
 	ViewProjTransforms camera_view_proj_transforms;
@@ -329,8 +341,6 @@ void edan35::NPRR::run()
 			}
 		}
 
-		light_position = mCamera.mWorld.GetTranslation();
-
 		if (inputHandler.GetKeycodeState(GLFW_KEY_F3) & JUST_RELEASED)
 			show_logs = !show_logs;
 		if (inputHandler.GetKeycodeState(GLFW_KEY_F2) & JUST_RELEASED)
@@ -346,7 +356,8 @@ void edan35::NPRR::run()
 				glGetQueryObjectui64v(elapsed_time_queries[i], GL_QUERY_RESULT, pass_elapsed_times.data() + i);
 			}
 		}
-
+		glm::vec3 light_position = glm::vec3(2.5f, 3.0f, 4.0f) * constant::scale_lengths;
+		glm::vec3 camera_position = mCamera.mWorld.GetTranslation();
 		//
 		// Update per-frame changing UBOs.
 		//
@@ -368,6 +379,12 @@ void edan35::NPRR::run()
 
 			glUseProgram(fill_gbuffer_shader);
 			glUniform3fv(fill_gbuffer_shader_locations.light_position, 1, glm::value_ptr(light_position));
+			glUniform3fv(fill_gbuffer_shader_locations.camera_position, 1, glm::value_ptr(camera_position));
+			glUniform1f(fill_gbuffer_shader_locations.ring, 0.9f);
+			glUniform1f(fill_gbuffer_shader_locations.thickness, 0.5f);
+			glUniform2f(fill_gbuffer_shader_locations.inverse_screen_resolution,
+						1.0f / static_cast<float>(framebuffer_width),
+						1.0f / static_cast<float>(framebuffer_height));
 			for (std::size_t i = 0; i < current_geometry.size(); ++i)
 			{
 				auto const &geometry = current_geometry[i];
@@ -380,10 +397,10 @@ void edan35::NPRR::run()
 				glUniformMatrix4fv(fill_gbuffer_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
 				glUniformMatrix4fv(fill_gbuffer_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
 
-				// glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, 1);
-				glBindSampler(0u, samplers[toU(Sampler::Mipmaps)]);
 				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, diffuse_texture);
+				glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Noise)]);
+				glUniform1i(fill_gbuffer_shader_locations.noise_texture, 0);
+				glBindSampler(0u, samplers[toU(Sampler::Nearest)]);
 				glBindVertexArray(geometry.vao);
 				glDrawElements(GL_TRIANGLES_ADJACENCY, geometry.adjacency_nb, GL_UNSIGNED_INT, reinterpret_cast<GLvoid const *>(0x0));
 
@@ -400,6 +417,7 @@ void edan35::NPRR::run()
 			//
 			// Pass 2: Find the silhouette
 			//
+			light_position = camera_position;
 			utils::opengl::debug::beginDebugGroup("Silhouette");
 			glBeginQuery(GL_TIME_ELAPSED, elapsed_time_queries[toU(ElapsedTimeQuery::Silhouette)]);
 
@@ -784,7 +802,11 @@ namespace
 		locations.vertex_model_to_world = glGetUniformLocation(gbuffer_shader, "vertex_model_to_world");
 		locations.normal_model_to_world = glGetUniformLocation(gbuffer_shader, "normal_model_to_world");
 		locations.light_position = glGetUniformLocation(gbuffer_shader, "light_position");
-		locations.has_diffuse_texture = glGetUniformLocation(gbuffer_shader, "has_diffuse_texture");
+		locations.camera_position = glGetUniformLocation(gbuffer_shader, "camera_position");
+		locations.thickness = glGetUniformLocation(gbuffer_shader, "thickness");
+		locations.ring = glGetUniformLocation(gbuffer_shader, "ring");
+		locations.noise_texture = glGetUniformLocation(gbuffer_shader, "noise_texture");
+		locations.inverse_screen_resolution = glGetUniformLocation(gbuffer_shader, "inverse_screen_resolution");
 
 		glUniformBlockBinding(gbuffer_shader, locations.ubo_CameraViewProjTransforms, toU(UBO::CameraViewProjTransforms));
 	}
@@ -795,7 +817,6 @@ namespace
 		locations.vertex_model_to_world = glGetUniformLocation(silhouette_shader, "vertex_model_to_world");
 		locations.normal_model_to_world = glGetUniformLocation(silhouette_shader, "normal_model_to_world");
 		locations.light_position = glGetUniformLocation(silhouette_shader, "light_position");
-		locations.inverse_screen_resolution = glGetUniformLocation(silhouette_shader, "inverse_screen_resolution");
 
 		glUniformBlockBinding(silhouette_shader, locations.ubo_CameraViewProjTransforms, toU(UBO::CameraViewProjTransforms));
 	}

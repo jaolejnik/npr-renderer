@@ -1,12 +1,9 @@
 #version 430
 
-
 layout (triangles_adjacency) in;
 layout (line_strip, max_vertices=6) out;
 
 uniform vec3 light_position;
-// uniform vec2 inverse_screen_resolution;
-// uniform sampler2D depth_texture;
 
 in VS_OUT {
     vec3 vertex;
@@ -34,7 +31,7 @@ void main()
     vec3 e6 = gs_in[5].vertex - gs_in[0].vertex;
 
     vec3 normal = cross(e1, e2);
-    vec3 light_direction = light_position - gs_in[0].vertex;
+    vec3 light_direction = normalize(light_position - gs_in[0].vertex);
 
     if (dot(normal, light_direction) > 0.00001) {
 
