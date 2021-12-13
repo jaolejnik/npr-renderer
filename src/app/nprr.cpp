@@ -48,6 +48,7 @@ namespace
 		DepthBuffer = 0u,
 		GBufferDiffuse,
 		Noise,
+		Silhouette,
 		Result,
 		Count
 	};
@@ -69,6 +70,7 @@ namespace
 	{
 		GBuffer = 0u,
 		Noise,
+		Silhouette,
 		Resolve,
 		FinalWithDepth,
 		Count
@@ -158,10 +160,24 @@ void edan35::NPRR::run()
 		return;
 	}
 
-	const std::vector<std::vector<bonobo::mesh_data>> geometry_array = {sphere_geometry, cube_geometry, face_geometry, sponza_geometry};
-	const char *geometry_names[] = {"Sphere", "Cube", "Face", "Sponza"};
-	// const std::vector<std::vector<bonobo::mesh_data>> geometry_array = {cube_geometry};
-	// const char *geometry_names[] = {"Cube"};
+	const std::vector<std::vector<bonobo::mesh_data>> geometry_array = {
+		sphere_geometry,
+		cube_geometry,
+		face_geometry,
+		sponza_geometry,
+	};
+	const char *geometry_names[] = {
+		"Sphere",
+		"Cube",
+		"Face",
+		"Sponza",
+	};
+	const GLuint line_width[] = {
+		10u,
+		10u,
+		3u,
+		2u,
+	};
 	int current_geometry_id = 0;
 	auto current_geometry = geometry_array[current_geometry_id];
 
@@ -253,7 +269,7 @@ void edan35::NPRR::run()
 		glBindSampler(slot, sampler);
 	};
 
-	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClearDepthf(1.0f);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -339,20 +355,63 @@ void edan35::NPRR::run()
 		if (!shader_reload_failed)
 		{
 			//
-			// Render scene into the g-buffer
+			// Pass1: Render scene into the g-buffer
 			//
 			utils::opengl::debug::beginDebugGroup("Fill G-buffer");
 			glBeginQuery(GL_TIME_ELAPSED, elapsed_time_queries[toU(ElapsedTimeQuery::GbufferGeneration)]);
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::GBuffer)]);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
+			// glClearColor(0.0, 0.0, 0.0, 1.0);
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-			// bonobo::changePolygonMode(polygon_mode);
+
+			glUseProgram(fill_gbuffer_shader);
+			glUniform3fv(fill_gbuffer_shader_locations.light_position, 1, glm::value_ptr(light_position));
+			for (std::size_t i = 0; i < current_geometry.size(); ++i)
+			{
+				auto const &geometry = current_geometry[i];
+
+				utils::opengl::debug::beginDebugGroup(geometry.name);
+
+				auto const vertex_model_to_world = glm::mat4(1.0f);
+				auto const normal_model_to_world = glm::mat4(1.0f);
+
+				glUniformMatrix4fv(fill_gbuffer_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
+				glUniformMatrix4fv(fill_gbuffer_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
+
+				auto const default_sampler = samplers[toU(Sampler::Nearest)];
+				auto const mipmap_sampler = samplers[toU(Sampler::Mipmaps)];
+
+				glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, diffuse_texture);
+				glBindSampler(0u, mipmap_sampler);
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, diffuse_texture);
+				glBindVertexArray(geometry.vao);
+				glDrawElements(GL_TRIANGLES_ADJACENCY, geometry.adjacency_nb, GL_UNSIGNED_INT, reinterpret_cast<GLvoid const *>(0x0));
+
+				utils::opengl::debug::endDebugGroup();
+			}
+
+			glEndQuery(GL_TIME_ELAPSED);
+			utils::opengl::debug::endDebugGroup();
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glBindVertexArray(0u);
+			glUseProgram(0u);
+
+			//
+			// Pass 2: Find the silhouette
+			//
+			utils::opengl::debug::beginDebugGroup("Silhouette");
+			// glBeginQuery(GL_TIME_ELAPSED, elapsed_time_queries[toU(ElapsedTimeQuery::GbufferGeneration)]);
+
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::Silhouette)]);
+			glViewport(0, 0, framebuffer_width, framebuffer_height);
+			glClearColor(1.0, 1.0, 1.0, 1.0);
+			glClear(GL_COLOR_BUFFER_BIT);
 
 			glUseProgram(silhouette_shader);
 			glUniform3fv(fill_silhouette_shader_locations.light_position, 1, glm::value_ptr(light_position));
-			// glUseProgram(fill_gbuffer_shader);
-			// glUniform3fv(fill_gbuffer_shader_locations.light_position, 1, glm::value_ptr(light_position));
 			for (std::size_t i = 0; i < current_geometry.size(); ++i)
 			{
 				auto const &geometry = current_geometry[i];
@@ -364,30 +423,18 @@ void edan35::NPRR::run()
 
 				glUniformMatrix4fv(fill_silhouette_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
 				glUniformMatrix4fv(fill_silhouette_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
-				// glUniformMatrix4fv(fill_gbuffer_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
-				// glUniformMatrix4fv(fill_gbuffer_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
 
-				auto const default_sampler = samplers[toU(Sampler::Nearest)];
-				auto const mipmap_sampler = samplers[toU(Sampler::Mipmaps)];
-
-				// glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, diffuse_texture);
-				glBindSampler(0u, mipmap_sampler);
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, diffuse_texture);
 				glBindVertexArray(geometry.vao);
-				if (geometry.ibo != 0u)
-					glDrawElements(GL_TRIANGLES_ADJACENCY, geometry.adjacency_nb, GL_UNSIGNED_INT, reinterpret_cast<GLvoid const *>(0x0));
-				// else
-				// 	glDrawArrays(geometry.drawing_mode, 0, geometry.vertices_nb);
-				// glDrawArrays(GL_TRIANGLES_ADJACENCY, 0, geometry.indices_nb);
+				glLineWidth(line_width[current_geometry_id]);
+				glDrawElements(GL_TRIANGLES_ADJACENCY, geometry.adjacency_nb, GL_UNSIGNED_INT, reinterpret_cast<GLvoid const *>(0x0));
 
 				utils::opengl::debug::endDebugGroup();
 			}
 
-			glEndQuery(GL_TIME_ELAPSED);
+			// glEndQuery(GL_TIME_ELAPSED);
 			utils::opengl::debug::endDebugGroup();
-
-			// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glBindVertexArray(0u);
+			glUseProgram(0u);
 
 			//
 			// Pass 3: Compute final image using both the g-buffer and  the light accumulation buffer
@@ -400,8 +447,10 @@ void edan35::NPRR::run()
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
 
 			bind_texture_with_sampler(GL_TEXTURE_2D, 0, resolve_sketch_shader, "diffuse_texture", textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Nearest)]);
+			bind_texture_with_sampler(GL_TEXTURE_2D, 1, resolve_sketch_shader, "silhouette_texture", textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Nearest)]);
 			bonobo::drawFullscreen();
 
+			glBindSampler(1, 0u);
 			glBindSampler(0, 0u);
 			glUseProgram(0u);
 
@@ -434,7 +483,9 @@ void edan35::NPRR::run()
 		if (show_textures)
 		{
 			bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
-			bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			//
 		}
 
 		//
@@ -485,7 +536,6 @@ void edan35::NPRR::run()
 		{
 			bool changed = ImGui::Combo("Geometry", &current_geometry_id, geometry_names, IM_ARRAYSIZE(geometry_names), 3);
 			current_geometry = geometry_array[current_geometry_id];
-			bonobo::uiSelectPolygonMode("Polygon mode", polygon_mode);
 			ImGui::Separator();
 			ImGui::Checkbox("Show basis", &show_basis);
 			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
@@ -574,15 +624,19 @@ namespace
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::GBufferDiffuse)], "GBuffer diffuse");
 
-		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Result)]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::Result)], "Final result");
-
 		glm::vec3 *noise_data = new glm::vec3[constant::noise_res_x * constant::noise_res_y];
 		fill_noise_data(noise_data, constant::noise_res_x, constant::noise_res_y);
 		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Noise)]);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, constant::noise_res_x, constant::noise_res_y, 0, GL_RGBA, GL_UNSIGNED_BYTE, noise_data);
 		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::Noise)], "Noise");
+
+		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Silhouette)]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::Silhouette)], "Silhouette");
+
+		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Result)]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::Result)], "Final result");
 
 		glBindTexture(GL_TEXTURE_2D, 0u);
 		delete[] noise_data;
@@ -641,6 +695,13 @@ namespace
 		glDrawBuffer(GL_COLOR_ATTACHMENT0); // The fragment shader output at location 0 will be written to colour attachment 0 (i.e. the rendering result texture).
 		validate_fbo("GBuffer");
 		utils::opengl::debug::nameObject(GL_FRAMEBUFFER, fbos[toU(FBO::GBuffer)], "GBuffer");
+
+		glBindFramebuffer(GL_FRAMEBUFFER, fbos[toU(FBO::Silhouette)]);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[toU(Texture::Silhouette)], 0);
+		glReadBuffer(GL_NONE);				// Disable reading back from the colour attachments, as unnecessary in this assignment.
+		glDrawBuffer(GL_COLOR_ATTACHMENT0); // The fragment shader output at location 0 will be written to colour attachment 0 (i.e. the rendering result texture).
+		validate_fbo("Silhouette");
+		utils::opengl::debug::nameObject(GL_FRAMEBUFFER, fbos[toU(FBO::Silhouette)], "Silhouette");
 
 		glBindFramebuffer(GL_FRAMEBUFFER, fbos[toU(FBO::Noise)]);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[toU(Texture::Noise)], 0);
