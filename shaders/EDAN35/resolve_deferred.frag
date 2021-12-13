@@ -1,4 +1,4 @@
-#version 410
+#version 430
 
 uniform sampler2D diffuse_texture;
 uniform sampler2D specular_texture;

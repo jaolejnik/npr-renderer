@@ -111,6 +111,15 @@ namespace
 		GLuint has_diffuse_texture{0u};
 	};
 	void fillGBufferShaderLocations(GLuint gbuffer_shader, GBufferShaderLocations &locations);
+
+	struct SilhouetteShaderLocations
+	{
+		GLuint ubo_CameraViewProjTransforms{0u};
+		GLuint vertex_model_to_world{0u};
+		GLuint normal_model_to_world{0u};
+		GLuint light_position{0u};
+	};
+	void fillSilhouetteShaderLocations(GLuint silhouette_shader, SilhouetteShaderLocations &locations);
 } // namespace
 
 edan35::NPRR::NPRR(WindowManager &windowManager) : mCamera(0.5f * glm::half_pi<float>(),
@@ -139,8 +148,8 @@ void edan35::NPRR::run()
 	auto diffuse_texture = bonobo::loadTexture2D(config::resources_path("textures/Paper_Wrinkled_001_basecolor.jpg"));
 
 	// Load the geometry of Sponza
-	auto const sphere_geometry = bonobo::loadObjects(config::resources_path("scenes/sphere.obj"));
 	auto const cube_geometry = bonobo::loadObjects(config::resources_path("scenes/cube.obj"));
+	auto const sphere_geometry = bonobo::loadObjects(config::resources_path("scenes/sphere.obj"));
 	auto const face_geometry = bonobo::loadObjects(config::resources_path("scenes/face.obj"));
 	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("scenes/sponza.obj"));
 	if (sponza_geometry.empty())
@@ -151,6 +160,8 @@ void edan35::NPRR::run()
 
 	const std::vector<std::vector<bonobo::mesh_data>> geometry_array = {sphere_geometry, cube_geometry, face_geometry, sponza_geometry};
 	const char *geometry_names[] = {"Sphere", "Cube", "Face", "Sponza"};
+	// const std::vector<std::vector<bonobo::mesh_data>> geometry_array = {cube_geometry};
+	// const char *geometry_names[] = {"Cube"};
 	int current_geometry_id = 0;
 	auto current_geometry = geometry_array[current_geometry_id];
 
@@ -201,6 +212,20 @@ void edan35::NPRR::run()
 	}
 	GBufferShaderLocations fill_gbuffer_shader_locations;
 	fillGBufferShaderLocations(fill_gbuffer_shader, fill_gbuffer_shader_locations);
+
+	GLuint silhouette_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Fill G-Buffer",
+											 {{ShaderType::vertex, "NPR/silhouette.vert"},
+											  {ShaderType::fragment, "NPR/silhouette.frag"},
+											  {ShaderType::geometry, "NPR/silhouette.geom"}},
+											 silhouette_shader);
+	if (silhouette_shader == 0u)
+	{
+		LogError("Failed to load Silhouette shader");
+		return;
+	}
+	SilhouetteShaderLocations fill_silhouette_shader_locations;
+	fillSilhouetteShaderLocations(silhouette_shader, fill_silhouette_shader_locations);
 
 	GLuint resolve_sketch_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Resolve deferred",
@@ -286,6 +311,8 @@ void edan35::NPRR::run()
 			}
 		}
 
+		light_position = mCamera.mWorld.GetTranslation();
+
 		if (inputHandler.GetKeycodeState(GLFW_KEY_F3) & JUST_RELEASED)
 			show_logs = !show_logs;
 		if (inputHandler.GetKeycodeState(GLFW_KEY_F2) & JUST_RELEASED)
@@ -320,10 +347,12 @@ void edan35::NPRR::run()
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::GBuffer)]);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
 			glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-			bonobo::changePolygonMode(polygon_mode);
+			// bonobo::changePolygonMode(polygon_mode);
 
-			glUseProgram(fill_gbuffer_shader);
-			glUniform3fv(fill_gbuffer_shader_locations.light_position, 1, glm::value_ptr(light_position));
+			glUseProgram(silhouette_shader);
+			glUniform3fv(fill_silhouette_shader_locations.light_position, 1, glm::value_ptr(light_position));
+			// glUseProgram(fill_gbuffer_shader);
+			// glUniform3fv(fill_gbuffer_shader_locations.light_position, 1, glm::value_ptr(light_position));
 			for (std::size_t i = 0; i < current_geometry.size(); ++i)
 			{
 				auto const &geometry = current_geometry[i];
@@ -333,22 +362,24 @@ void edan35::NPRR::run()
 				auto const vertex_model_to_world = glm::mat4(1.0f);
 				auto const normal_model_to_world = glm::mat4(1.0f);
 
-				glUniformMatrix4fv(fill_gbuffer_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
-				glUniformMatrix4fv(fill_gbuffer_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
+				glUniformMatrix4fv(fill_silhouette_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
+				glUniformMatrix4fv(fill_silhouette_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
+				// glUniformMatrix4fv(fill_gbuffer_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
+				// glUniformMatrix4fv(fill_gbuffer_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
 
 				auto const default_sampler = samplers[toU(Sampler::Nearest)];
 				auto const mipmap_sampler = samplers[toU(Sampler::Mipmaps)];
 
-				glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, diffuse_texture);
+				// glUniform1i(fill_gbuffer_shader_locations.has_diffuse_texture, diffuse_texture);
 				glBindSampler(0u, mipmap_sampler);
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, diffuse_texture);
-
 				glBindVertexArray(geometry.vao);
 				if (geometry.ibo != 0u)
 					glDrawElements(GL_TRIANGLES_ADJACENCY, geometry.adjacency_nb, GL_UNSIGNED_INT, reinterpret_cast<GLvoid const *>(0x0));
-				else
-					glDrawArrays(geometry.drawing_mode, 0, geometry.vertices_nb);
+				// else
+				// 	glDrawArrays(geometry.drawing_mode, 0, geometry.vertices_nb);
+				// glDrawArrays(GL_TRIANGLES_ADJACENCY, 0, geometry.indices_nb);
 
 				utils::opengl::debug::endDebugGroup();
 			}
@@ -356,7 +387,7 @@ void edan35::NPRR::run()
 			glEndQuery(GL_TIME_ELAPSED);
 			utils::opengl::debug::endDebugGroup();
 
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 			//
 			// Pass 3: Compute final image using both the g-buffer and  the light accumulation buffer
@@ -692,6 +723,16 @@ namespace
 		locations.has_diffuse_texture = glGetUniformLocation(gbuffer_shader, "has_diffuse_texture");
 
 		glUniformBlockBinding(gbuffer_shader, locations.ubo_CameraViewProjTransforms, toU(UBO::CameraViewProjTransforms));
+	}
+
+	void fillSilhouetteShaderLocations(GLuint silhouette_shader, SilhouetteShaderLocations &locations)
+	{
+		locations.ubo_CameraViewProjTransforms = glGetUniformBlockIndex(silhouette_shader, "CameraViewProjTransforms");
+		locations.vertex_model_to_world = glGetUniformLocation(silhouette_shader, "vertex_model_to_world");
+		locations.normal_model_to_world = glGetUniformLocation(silhouette_shader, "normal_model_to_world");
+		locations.light_position = glGetUniformLocation(silhouette_shader, "light_position");
+
+		glUniformBlockBinding(silhouette_shader, locations.ubo_CameraViewProjTransforms, toU(UBO::CameraViewProjTransforms));
 	}
 
 } // namespace

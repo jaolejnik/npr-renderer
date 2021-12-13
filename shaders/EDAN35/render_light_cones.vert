@@ -1,4 +1,4 @@
-#version 410
+#version 430
 
 uniform mat4 vertex_model_to_world;
 uniform mat4 vertex_world_to_clip;

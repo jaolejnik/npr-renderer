@@ -1,4 +1,4 @@
-#version 410
+#version 430
 
 in VS_OUT {
 	flat int axis_index;

@@ -34,7 +34,19 @@ struct std::hash<Edge>
 	{
 		std::size_t h1 = std::hash<unsigned int>{}(edge.p1);
 		std::size_t h2 = std::hash<unsigned int>{}(edge.p2);
-		return h1 ^ (h2 << 1); // or use boost::hash_combine
+		return h1 ^ (h2 << 1);
+	}
+};
+
+template <>
+struct std::hash<aiVector3D>
+{
+	std::size_t operator()(aiVector3D const &v) const noexcept
+	{
+		std::size_t h1 = std::hash<unsigned int>{}(v[0]);
+		std::size_t h2 = std::hash<unsigned int>{}(v[1]);
+		std::size_t h3 = std::hash<unsigned int>{}(v[2]);
+		return ((h1 ^ (h2 << 1)) >> 1) ^ (h3 << 1);
 	}
 };
 
@@ -325,6 +337,7 @@ bonobo::loadObjects(std::string const &filename)
 		auto object_indices = std::make_unique<GLuint[]>(static_cast<size_t>(object.indices_nb));
 		std::vector<GLuint> vertex_vector;
 		std::unordered_map<Edge, GLuint> edge_adj_map;
+		std::unordered_map<aiVector3D, GLuint> vertex_map;
 		for (size_t i = 0u; i < assimp_object_mesh->mNumFaces; ++i)
 		{
 			auto const &face = assimp_object_mesh->mFaces[i];
@@ -334,48 +347,63 @@ bonobo::loadObjects(std::string const &filename)
 			for (size_t j = 0u; j < 3u; ++j)
 			{
 				size_t index = face.mIndices[j];
-				object_indices[num_vertices_per_face * i + j] = index;
-				// aiVector3D &v = assimp_object_mesh->mVertices[index];
-			}
-			size_t v1 = face.mIndices[0u];
-			size_t v2 = face.mIndices[1u];
-			size_t v3 = face.mIndices[2u];
+				aiVector3D &v = assimp_object_mesh->mVertices[index];
 
-			edge_adj_map[Edge{v1, v2}] = v3;
-			edge_adj_map[Edge{v2, v3}] = v1;
-			edge_adj_map[Edge{v3, v1}] = v2;
+				// removing duplicate indices for the same vertex
+				if (vertex_map.find(v) == vertex_map.end())
+					vertex_map[v] = index;
+				else
+					index = vertex_map[v];
+
+				object_indices[num_vertices_per_face * i + j] = index;
+			}
+			size_t iv1 = object_indices[num_vertices_per_face * i + 0u];
+			size_t iv2 = object_indices[num_vertices_per_face * i + 1u];
+			size_t iv3 = object_indices[num_vertices_per_face * i + 2u];
+
+			edge_adj_map[Edge{iv1, iv2}] = iv3;
+			edge_adj_map[Edge{iv2, iv3}] = iv1;
+			edge_adj_map[Edge{iv3, iv1}] = iv2;
 		}
 
+		// filling adjacency indices using hash map
 		object.adjacency_nb = object.indices_nb * 2u;
 		auto adjacency_indices = std::make_unique<GLuint[]>(static_cast<size_t>(object.adjacency_nb));
 		for (size_t i = 0u; i < object.indices_nb; i += 3)
 		{
-			size_t v1 = object_indices[i + 0u];
-			size_t v2 = object_indices[i + 1u];
-			size_t v3 = object_indices[i + 2u];
+			size_t iv1 = object_indices[i + 0u];
+			size_t iv2 = object_indices[i + 1u];
+			size_t iv3 = object_indices[i + 2u];
 
-			Edge edges[3] = {Edge{v2, v1},
-							 Edge{v3, v2},
-							 Edge{v1, v3}};
+			Edge edges[3] = {Edge{iv2, iv1},
+							 Edge{iv3, iv2},
+							 Edge{iv1, iv3}};
 
-			adjacency_indices[2u * i + 0u] = v1;
-			adjacency_indices[2u * i + 2u] = v2;
-			adjacency_indices[2u * i + 4u] = v3;
+			adjacency_indices[2u * i + 0u] = iv1;
+			adjacency_indices[2u * i + 2u] = iv2;
+			adjacency_indices[2u * i + 4u] = iv3;
 
 			for (size_t j = 0u; j < 3u; j++)
 			{
-				size_t index = edge_adj_map[edges[j]];
+				size_t index;
+				// if the edge BA has no adjacent vertex, save adjacent vertex of AB
 				if (edge_adj_map.find(edges[j]) == edge_adj_map.end())
-					size_t index = edges[j].p1;
+				{
+					Edge no_adjacent = edges[j];
+					Edge opposite_edge{no_adjacent.p2, no_adjacent.p1};
+					index = edge_adj_map[opposite_edge];
+				}
+				else
+					index = edge_adj_map[edges[j]];
 
-				adjacency_indices[2u * i + j * 2 + 1] = index;
+				adjacency_indices[2u * i + j * 2u + 1u] = index;
 			}
 		}
 
 		glGenBuffers(1, &object.ibo);
 		assert(object.ibo != 0u);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, object.ibo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<unsigned int>(object.indices_nb) * 2u * sizeof(GL_UNSIGNED_INT), reinterpret_cast<GLvoid const *>(adjacency_indices.get()), GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<unsigned int>(object.adjacency_nb) * sizeof(GL_UNSIGNED_INT), reinterpret_cast<GLvoid const *>(adjacency_indices.get()), GL_STATIC_DRAW);
 		object_indices.reset(nullptr);
 		adjacency_indices.reset(nullptr);
 

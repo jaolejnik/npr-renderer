@@ -1,4 +1,4 @@
-#version 410
+#version 430
 
 uniform bool has_opacity_texture;
 uniform sampler2D opacity_texture;

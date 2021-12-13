@@ -1,4 +1,4 @@
-#version 410
+#version 430
 
 uniform bool has_diffuse_texture;
 uniform bool has_specular_texture;

@@ -1,4 +1,4 @@
-#version 410
+#version 430
 
 out vec3 frag_color;
 
