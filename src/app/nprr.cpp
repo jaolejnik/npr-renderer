@@ -49,7 +49,7 @@ namespace
 		GBufferDiffuse,
 		Noise,
 		Silhouette,
-		StokeGen,
+		StrokeGen,
 		Result,
 		Count
 	};
@@ -259,9 +259,9 @@ void edan35::NPRR::run()
 
 	GLuint strokeGen_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Stroke Generation",
-											{ {ShaderType::vertex, "NPR/silhouette.vert"},
-											 {ShaderType::fragment, "NPR/silhouette.frag"},
-											 {ShaderType::geometry, "NPR/silhouette.geom"} },
+											{ {ShaderType::vertex, "NPR/strokeGen.vert"},
+											 {ShaderType::fragment, "NPR/strokeGen.frag"},
+											 {ShaderType::geometry, "NPR/strokeGen.geom"} },
 											strokeGen_shader);
 	if (strokeGen_shader == 0u)
 	{
@@ -507,7 +507,7 @@ void edan35::NPRR::run()
 
 			bind_texture_with_sampler(GL_TEXTURE_2D, 0, resolve_sketch_shader, "diffuse_texture", textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Nearest)]);
 			bind_texture_with_sampler(GL_TEXTURE_2D, 1, resolve_sketch_shader, "silhouette_texture", textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Nearest)]);
-			bind_texture_with_sampler(GL_TEXTURE_2D, 1, resolve_sketch_shader, "strokeGen_texture", textures[toU(Texture::StokeGen)], samplers[toU(Sampler::Nearest)]);
+			bind_texture_with_sampler(GL_TEXTURE_2D, 1, resolve_sketch_shader, "strokeGen_texture", textures[toU(Texture::StrokeGen)], samplers[toU(Sampler::Nearest)]);
 			bonobo::drawFullscreen();
 
 			glBindSampler(1, 0u);
@@ -544,7 +544,7 @@ void edan35::NPRR::run()
 		{
 			bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
 			bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
-			//bonobo::displayTexture({ -0.95f, 0.05f }, { -0.55f, 0.45f }, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], { 0, 1, 2, -1 }, glm::uvec2(framebuffer_width, framebuffer_height));
+			bonobo::displayTexture({ -0.45f, -0.95f }, { -0.05f, -0.55f }, textures[toU(Texture::StrokeGen)], samplers[toU(Sampler::Linear)], { 0, 1, 2, -1 }, glm::uvec2(framebuffer_width, framebuffer_height));
 			bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 			//
 		}
