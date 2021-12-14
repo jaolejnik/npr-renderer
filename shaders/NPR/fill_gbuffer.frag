@@ -4,8 +4,6 @@ uniform vec3 light_position;
 uniform vec3 camera_position;
 uniform vec3 diffuse_color;
 uniform float thickness;
-uniform float ring; // not sure what that will be 
-uniform sampler2D noise_texture;
 
 in VS_OUT {
 	vec3 vertex;
@@ -38,20 +36,6 @@ float diagonal(float sample_scale, float thickness, float direction)
 	return balance(sample_scale, a);  
 }
 
-float diagonal_noised(float sample_scale, float thickness, float direction, vec2 noise) 
-{
-	vec2 pixel = floor(vec2(gl_FragCoord));
-	float a = 1.0;
-	float stroke_noise = cos(length(pixel) / noise.x) * noise.y;
-	float stroke_direction = pixel.x - pixel.y * direction;
-	float b = mod(stroke_direction  + stroke_noise, thickness);
-	float c = thickness / 2.0;
-	if (b < thickness) 
-		a = abs(b - c) / c;
-
-	return balance(sample_scale, a);  
-}
-
 float circles(float sample_scale, float thickness) {
   vec2 pixel = floor(vec2(gl_FragCoord));
   float b = thickness / 2.0;
@@ -64,11 +48,12 @@ float circles(float sample_scale, float thickness) {
 
 vec3 shade(vec3 L, vec3 V,  vec3 N, vec3 color) 
 {
+	
 	float diffuse = max(dot(N, L), 0.0);
 	color += diffuse;  
 	vec3 R = reflect(-L, N);
-	float specular = pow(max(dot(R, V), 0.0), 25.0);
-	specular = smoothstep(0.1, 1.0, specular);
+	float specular = pow(max(dot(R, V), 0.0), 2.0);
+	specular = smoothstep(0.0, 1.0, specular);
 	color += specular;
 
 	return color;
@@ -82,11 +67,8 @@ void main()
 	vec3 shaded_color = shade(L, V, fs_in.normal, color);
 
 	float scale = min(min(shaded_color.r, shaded_color.g), shaded_color.b);
-	vec3 noise = texture(noise_texture, fs_in.texcoord).rgb;
-	float hatch = circles(scale, 6);
-	// float hatch = diagonal(scale, 5, 1.0);
-	// float hatch = diagonal(scale, 5, 1.0) * diagonal(scale, 5, -1.0);
-	// float hatch = diagonal_noised(scale, 20, 1.0 + noise.g, noise.rb) * diagonal_noised(scale, 20, -1.0 + noise.r, noise.bg);
+	float hatch = circles(scale, thickness);
+	// float hatch = diagonal(scale, 10, 1.0);
 
 	frag_color = vec4(color * hatch, 1.0);
 }

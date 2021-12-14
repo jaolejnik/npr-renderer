@@ -268,7 +268,6 @@ void edan35::NPRR::run()
 		return;
 	}
 
-	// auto light_position = glm::vec3(2.5f, 10.0f, 4.0f) * constant::scale_lengths;
 	auto const set_uniforms = [](GLuint /*program*/) {};
 
 	ViewProjTransforms camera_view_proj_transforms;
@@ -291,6 +290,11 @@ void edan35::NPRR::run()
 	glUseProgram(0u);
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, fbos[toU(FBO::Resolve)]);
+
+	float hatching_thickness = 6.0f;
+	float light_pos_x = 2.5f;
+	float light_pos_y = 3.0f;
+	float light_pos_z = 4.0f;
 
 	auto seconds_nb = 0.0f;
 	std::array<GLuint64, toU(ElapsedTimeQuery::Count)> pass_elapsed_times;
@@ -356,7 +360,7 @@ void edan35::NPRR::run()
 				glGetQueryObjectui64v(elapsed_time_queries[i], GL_QUERY_RESULT, pass_elapsed_times.data() + i);
 			}
 		}
-		glm::vec3 light_position = glm::vec3(2.5f, 3.0f, 4.0f) * constant::scale_lengths;
+		glm::vec3 light_position = glm::vec3(light_pos_x, light_pos_y, light_pos_z) * constant::scale_lengths;
 		glm::vec3 camera_position = mCamera.mWorld.GetTranslation();
 		//
 		// Update per-frame changing UBOs.
@@ -380,7 +384,7 @@ void edan35::NPRR::run()
 			glUseProgram(fill_gbuffer_shader);
 			glUniform3fv(fill_gbuffer_shader_locations.light_position, 1, glm::value_ptr(light_position));
 			glUniform3fv(fill_gbuffer_shader_locations.camera_position, 1, glm::value_ptr(camera_position));
-			glUniform1f(fill_gbuffer_shader_locations.thickness, 0.5f);
+			glUniform1f(fill_gbuffer_shader_locations.thickness, hatching_thickness);
 			glUniform2f(fill_gbuffer_shader_locations.inverse_screen_resolution,
 						1.0f / static_cast<float>(framebuffer_width),
 						1.0f / static_cast<float>(framebuffer_height));
@@ -498,10 +502,9 @@ void edan35::NPRR::run()
 		//
 		if (show_textures)
 		{
-			// bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
-			// bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
+			bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 			// bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
-			//
 		}
 
 		//
@@ -557,10 +560,15 @@ void edan35::NPRR::run()
 		{
 			bool changed = ImGui::Combo("Geometry", &current_geometry_id, geometry_names, IM_ARRAYSIZE(geometry_names), 3);
 			current_geometry = geometry_array[current_geometry_id];
+			ImGui::SliderFloat("Hatching Thickness", &hatching_thickness, 4.0f, 30.0f);
 			ImGui::Separator();
-			ImGui::Checkbox("Show basis", &show_basis);
-			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
-			ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f, 100.0f);
+			ImGui::SliderFloat("Light X", &light_pos_x, -50.0f, 50.0f);
+			ImGui::SliderFloat("Light Y", &light_pos_y, -50.0f, 50.0f);
+			ImGui::SliderFloat("Light Z", &light_pos_z, -50.0f, 50.0f);
+
+			// ImGui::Checkbox("Show basis", &show_basis);
+			// ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
+			// ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f, 100.0f);
 		}
 		ImGui::End();
 
