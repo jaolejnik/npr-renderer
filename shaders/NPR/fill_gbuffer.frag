@@ -4,6 +4,7 @@ uniform vec3 light_position;
 uniform vec3 camera_position;
 uniform vec3 diffuse_color;
 uniform float thickness;
+uniform bool is_sketching;
 
 in VS_OUT {
 	vec3 vertex;
@@ -61,14 +62,18 @@ vec3 shade(vec3 L, vec3 V,  vec3 N, vec3 color)
 
 void main()
 {
-	vec3 color = diffuse_color;
-	vec3 V = normalize(camera_position - fs_in.vertex);
-	vec3 L = normalize(light_position - fs_in.vertex);
-	vec3 shaded_color = shade(L, V, fs_in.normal, color);
+	if(is_sketching)
+		frag_color = vec4(1.0);
+	else
+	{
+		vec3 color = diffuse_color;
+		vec3 V = normalize(camera_position - fs_in.vertex);
+		vec3 L = normalize(light_position - fs_in.vertex);
+		vec3 shaded_color = shade(L, V, fs_in.normal, color);
 
-	float scale = min(min(shaded_color.r, shaded_color.g), shaded_color.b);
-	float hatch = circles(scale, thickness);
-	// float hatch = diagonal(scale, 10, 1.0);
+		float scale = min(min(shaded_color.r, shaded_color.g), shaded_color.b);
+		float hatch = circles(scale, thickness);
 
-	frag_color = vec4(color * hatch, 1.0);
+		frag_color = vec4(color * hatch, 1.0);
+	}
 }

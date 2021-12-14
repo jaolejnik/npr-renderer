@@ -15,11 +15,10 @@ void main()
 	vec3 diffuse  = texture(diffuse_texture,  fs_in.texcoord).rgb;
 	vec3 silhouette  = texture(silhouette_texture,  fs_in.texcoord).rgb;
 
+	vec3 final_color = diffuse;
+
 	if (length(silhouette) < 0.9)
-		diffuse = silhouette;
+		final_color = silhouette;
 
-	// TODO add other elements of the pipeline
-
-
-	frag_color =  vec4(diffuse, 1.0);
+	frag_color =  vec4(final_color, 1.0);
 }

@@ -119,12 +119,11 @@ namespace
 		GLuint ubo_CameraViewProjTransforms{0u};
 		GLuint vertex_model_to_world{0u};
 		GLuint normal_model_to_world{0u};
-		GLuint diffuse_color{0u};
-		GLuint light_position{0u};
 		GLuint camera_position{0u};
+		GLuint light_position{0u};
+		GLuint diffuse_color{0u};
+		GLuint is_sketching{0u};
 		GLuint thickness{0u};
-		GLuint noise_texture{0u};
-		GLuint inverse_screen_resolution{0u};
 	};
 	void fillGBufferShaderLocations(GLuint gbuffer_shader, GBufferShaderLocations &locations);
 
@@ -134,6 +133,8 @@ namespace
 		GLuint vertex_model_to_world{0u};
 		GLuint normal_model_to_world{0u};
 		GLuint light_position{0u};
+		GLuint noise_texture{0u};
+		GLuint is_sketching{0u};
 	};
 	void fillSilhouetteShaderLocations(GLuint silhouette_shader, SilhouetteShaderLocations &locations);
 } // namespace
@@ -291,6 +292,7 @@ void edan35::NPRR::run()
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, fbos[toU(FBO::Resolve)]);
 
+	bool is_sketching = true;
 	float hatching_thickness = 6.0f;
 	float light_pos_x = 2.5f;
 	float light_pos_y = 3.0f;
@@ -385,9 +387,7 @@ void edan35::NPRR::run()
 			glUniform3fv(fill_gbuffer_shader_locations.light_position, 1, glm::value_ptr(light_position));
 			glUniform3fv(fill_gbuffer_shader_locations.camera_position, 1, glm::value_ptr(camera_position));
 			glUniform1f(fill_gbuffer_shader_locations.thickness, hatching_thickness);
-			glUniform2f(fill_gbuffer_shader_locations.inverse_screen_resolution,
-						1.0f / static_cast<float>(framebuffer_width),
-						1.0f / static_cast<float>(framebuffer_height));
+			glUniform1i(fill_gbuffer_shader_locations.is_sketching, is_sketching);
 			for (std::size_t i = 0; i < current_geometry.size(); ++i)
 			{
 				auto const &geometry = current_geometry[i];
@@ -402,10 +402,6 @@ void edan35::NPRR::run()
 				glUniformMatrix4fv(fill_gbuffer_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
 				glUniform3fv(fill_gbuffer_shader_locations.diffuse_color, 1, glm::value_ptr(diffuse_color));
 
-				glActiveTexture(GL_TEXTURE0);
-				glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Noise)]);
-				glUniform1i(fill_gbuffer_shader_locations.noise_texture, 0);
-				glBindSampler(0u, samplers[toU(Sampler::Nearest)]);
 				glBindVertexArray(geometry.vao);
 				glDrawElements(GL_TRIANGLES_ADJACENCY, geometry.adjacency_nb, GL_UNSIGNED_INT, reinterpret_cast<GLvoid const *>(0x0));
 
@@ -432,6 +428,7 @@ void edan35::NPRR::run()
 
 			glUseProgram(silhouette_shader);
 			glUniform3fv(fill_silhouette_shader_locations.light_position, 1, glm::value_ptr(light_position));
+			glUniform1i(fill_silhouette_shader_locations.is_sketching, is_sketching);
 			for (std::size_t i = 0; i < current_geometry.size(); ++i)
 			{
 				auto const &geometry = current_geometry[i];
@@ -444,8 +441,16 @@ void edan35::NPRR::run()
 				glUniformMatrix4fv(fill_silhouette_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
 				glUniformMatrix4fv(fill_silhouette_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
 
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Noise)]);
+				glUniform1i(fill_silhouette_shader_locations.noise_texture, 0);
+				glBindSampler(0u, samplers[toU(Sampler::Nearest)]);
+
 				glBindVertexArray(geometry.vao);
-				glLineWidth(line_width[current_geometry_id]);
+				if (is_sketching)
+					glLineWidth(1u);
+				else
+					glLineWidth(line_width[current_geometry_id]);
 				glDrawElements(GL_TRIANGLES_ADJACENCY, geometry.adjacency_nb, GL_UNSIGNED_INT, reinterpret_cast<GLvoid const *>(0x0));
 
 				utils::opengl::debug::endDebugGroup();
@@ -558,13 +563,18 @@ void edan35::NPRR::run()
 		opened = ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
 		if (opened)
 		{
+			ImGui::Checkbox("Sketching?", &is_sketching);
 			bool changed = ImGui::Combo("Geometry", &current_geometry_id, geometry_names, IM_ARRAYSIZE(geometry_names), 3);
 			current_geometry = geometry_array[current_geometry_id];
-			ImGui::SliderFloat("Hatching Thickness", &hatching_thickness, 4.0f, 30.0f);
 			ImGui::Separator();
-			ImGui::SliderFloat("Light X", &light_pos_x, -50.0f, 50.0f);
-			ImGui::SliderFloat("Light Y", &light_pos_y, -50.0f, 50.0f);
-			ImGui::SliderFloat("Light Z", &light_pos_z, -50.0f, 50.0f);
+			if (!is_sketching)
+			{
+				ImGui::SliderFloat("Hatching Thickness", &hatching_thickness, 4.0f, 30.0f);
+				ImGui::Separator();
+				ImGui::SliderFloat("Light X", &light_pos_x, -50.0f, 50.0f);
+				ImGui::SliderFloat("Light Y", &light_pos_y, -50.0f, 50.0f);
+				ImGui::SliderFloat("Light Z", &light_pos_z, -50.0f, 50.0f);
+			}
 
 			// ImGui::Checkbox("Show basis", &show_basis);
 			// ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
@@ -810,12 +820,11 @@ namespace
 		locations.ubo_CameraViewProjTransforms = glGetUniformBlockIndex(gbuffer_shader, "CameraViewProjTransforms");
 		locations.vertex_model_to_world = glGetUniformLocation(gbuffer_shader, "vertex_model_to_world");
 		locations.normal_model_to_world = glGetUniformLocation(gbuffer_shader, "normal_model_to_world");
-		locations.light_position = glGetUniformLocation(gbuffer_shader, "light_position");
 		locations.camera_position = glGetUniformLocation(gbuffer_shader, "camera_position");
-		locations.thickness = glGetUniformLocation(gbuffer_shader, "thickness");
+		locations.light_position = glGetUniformLocation(gbuffer_shader, "light_position");
 		locations.diffuse_color = glGetUniformLocation(gbuffer_shader, "diffuse_color");
-		locations.noise_texture = glGetUniformLocation(gbuffer_shader, "noise_texture");
-		locations.inverse_screen_resolution = glGetUniformLocation(gbuffer_shader, "inverse_screen_resolution");
+		locations.is_sketching = glGetUniformLocation(gbuffer_shader, "is_sketching");
+		locations.thickness = glGetUniformLocation(gbuffer_shader, "thickness");
 
 		glUniformBlockBinding(gbuffer_shader, locations.ubo_CameraViewProjTransforms, toU(UBO::CameraViewProjTransforms));
 	}
@@ -826,6 +835,8 @@ namespace
 		locations.vertex_model_to_world = glGetUniformLocation(silhouette_shader, "vertex_model_to_world");
 		locations.normal_model_to_world = glGetUniformLocation(silhouette_shader, "normal_model_to_world");
 		locations.light_position = glGetUniformLocation(silhouette_shader, "light_position");
+		locations.noise_texture = glGetUniformLocation(silhouette_shader, "noise_texture");
+		locations.is_sketching = glGetUniformLocation(silhouette_shader, "is_sketching");
 
 		glUniformBlockBinding(silhouette_shader, locations.ubo_CameraViewProjTransforms, toU(UBO::CameraViewProjTransforms));
 	}
