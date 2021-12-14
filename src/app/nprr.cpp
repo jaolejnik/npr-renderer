@@ -167,7 +167,7 @@ void edan35::NPRR::run()
 	// Load the geometry of Sponza
 	auto const cube_geometry = bonobo::loadObjects(config::resources_path("scenes/cube.obj"));
 	auto const sphere_geometry = bonobo::loadObjects(config::resources_path("scenes/sphere.obj"));
-	auto const face_geometry = bonobo::loadObjects(config::resources_path("scenes/face.obj"));
+	auto const face_geometry = bonobo::loadObjects(config::resources_path("scenes/face/face.obj"));
 	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("scenes/sponza/sponza.obj"));
 	if (sponza_geometry.empty())
 	{
