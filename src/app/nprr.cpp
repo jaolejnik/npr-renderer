@@ -49,6 +49,7 @@ namespace
 		GBufferDiffuse,
 		Noise,
 		Silhouette,
+		StokeGen,
 		Result,
 		Count
 	};
@@ -71,6 +72,7 @@ namespace
 		GBuffer = 0u,
 		Noise,
 		Silhouette,
+		StrokeGen,
 		Resolve,
 		FinalWithDepth,
 		Count
@@ -83,6 +85,7 @@ namespace
 		GbufferGeneration = 0u,
 		Noise,
 		Silhouette,
+		StrokeGen,
 		Resolve,
 		GUI,
 		CopyToFramebuffer,
@@ -124,6 +127,15 @@ namespace
 		GLuint inverse_screen_resolution{0u};
 	};
 	void fillSilhouetteShaderLocations(GLuint silhouette_shader, SilhouetteShaderLocations &locations);
+
+	struct StrokeGenShaderLocations
+	{
+		GLuint ubo_CameraViewProjTransforms{ 0u };
+		GLuint vertex_model_to_world{ 0u };
+		GLuint normal_model_to_world{ 0u };
+		GLuint light_position{ 0u };
+	};
+	void fillStrokeGenShaderLocations(GLuint strokeGen_shader, StrokeGenShaderLocations& locations);
 } // namespace
 
 edan35::NPRR::NPRR(WindowManager &windowManager) : mCamera(0.5f * glm::half_pi<float>(),
@@ -232,7 +244,7 @@ void edan35::NPRR::run()
 	fillGBufferShaderLocations(fill_gbuffer_shader, fill_gbuffer_shader_locations);
 
 	GLuint silhouette_shader = 0u;
-	program_manager.CreateAndRegisterProgram("Fill G-Buffer",
+	program_manager.CreateAndRegisterProgram("Silhouette",
 											 {{ShaderType::vertex, "NPR/silhouette.vert"},
 											  {ShaderType::fragment, "NPR/silhouette.frag"},
 											  {ShaderType::geometry, "NPR/silhouette.geom"}},
@@ -244,6 +256,20 @@ void edan35::NPRR::run()
 	}
 	SilhouetteShaderLocations fill_silhouette_shader_locations;
 	fillSilhouetteShaderLocations(silhouette_shader, fill_silhouette_shader_locations);
+
+	GLuint strokeGen_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Stroke Generation",
+											{ {ShaderType::vertex, "NPR/silhouette.vert"},
+											 {ShaderType::fragment, "NPR/silhouette.frag"},
+											 {ShaderType::geometry, "NPR/silhouette.geom"} },
+											strokeGen_shader);
+	if (strokeGen_shader == 0u)
+	{
+		LogError("Failed to load Stroke Generation shader");
+		return;
+	}
+	StrokeGenShaderLocations fill_strokeGen_shader_locations;
+	fillStrokeGenShaderLocations(strokeGen_shader, fill_strokeGen_shader_locations);
 
 	GLuint resolve_sketch_shader = 0u;
 	program_manager.CreateAndRegisterProgram("Resolve deferred",
@@ -433,6 +459,42 @@ void edan35::NPRR::run()
 			glBindVertexArray(0u);
 			glUseProgram(0u);
 
+
+			//Pass 3: Generate the Strokes
+			utils::opengl::debug::beginDebugGroup("Stroke Generation");
+			glBeginQuery(GL_TIME_ELAPSED, elapsed_time_queries[toU(ElapsedTimeQuery::StrokeGen)]);
+
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbos[toU(FBO::StrokeGen)]);
+			glViewport(0, 0, framebuffer_width, framebuffer_height);
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			glUseProgram(strokeGen_shader);
+			glUniform3fv(fill_strokeGen_shader_locations.light_position, 1, glm::value_ptr(light_position));
+			for (std::size_t i = 0; i < current_geometry.size(); ++i)
+			{
+				auto const& geometry = current_geometry[i];
+
+				utils::opengl::debug::beginDebugGroup(geometry.name);
+
+				auto const vertex_model_to_world = glm::mat4(1.0f);
+				auto const normal_model_to_world = glm::mat4(1.0f);
+
+				glUniformMatrix4fv(fill_strokeGen_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
+				glUniformMatrix4fv(fill_strokeGen_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
+
+				glBindVertexArray(geometry.vao);
+				glLineWidth(line_width[current_geometry_id]);
+				glDrawElements(GL_TRIANGLES_ADJACENCY, geometry.adjacency_nb, GL_UNSIGNED_INT, reinterpret_cast<GLvoid const*>(0x0));
+
+				utils::opengl::debug::endDebugGroup();
+			}
+
+			glEndQuery(GL_TIME_ELAPSED);
+			utils::opengl::debug::endDebugGroup();
+			glBindVertexArray(0u);
+			glUseProgram(0u);
+
+
 			//
 			// Pass 3: Compute final image using both the g-buffer and  the light accumulation buffer
 			//
@@ -445,6 +507,7 @@ void edan35::NPRR::run()
 
 			bind_texture_with_sampler(GL_TEXTURE_2D, 0, resolve_sketch_shader, "diffuse_texture", textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Nearest)]);
 			bind_texture_with_sampler(GL_TEXTURE_2D, 1, resolve_sketch_shader, "silhouette_texture", textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Nearest)]);
+			bind_texture_with_sampler(GL_TEXTURE_2D, 1, resolve_sketch_shader, "strokeGen_texture", textures[toU(Texture::StokeGen)], samplers[toU(Sampler::Nearest)]);
 			bonobo::drawFullscreen();
 
 			glBindSampler(1, 0u);
@@ -481,6 +544,7 @@ void edan35::NPRR::run()
 		{
 			bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
 			bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			//bonobo::displayTexture({ -0.95f, 0.05f }, { -0.55f, 0.45f }, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], { 0, 1, 2, -1 }, glm::uvec2(framebuffer_width, framebuffer_height));
 			bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 			//
 		}
@@ -636,6 +700,10 @@ namespace
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::Silhouette)], "Silhouette");
 
+		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::StrokeGen)]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::StrokeGen)], "Stroke Generation");
+
 		glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Result)]);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, framebuffer_width, framebuffer_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		utils::opengl::debug::nameObject(GL_TEXTURE, textures[toU(Texture::Result)], "Final result");
@@ -705,6 +773,14 @@ namespace
 		glDrawBuffer(GL_COLOR_ATTACHMENT0); // The fragment shader output at location 0 will be written to colour attachment 0 (i.e. the rendering result texture).
 		validate_fbo("Silhouette");
 		utils::opengl::debug::nameObject(GL_FRAMEBUFFER, fbos[toU(FBO::Silhouette)], "Silhouette");
+
+		glBindFramebuffer(GL_FRAMEBUFFER, fbos[toU(FBO::StrokeGen)]);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[toU(Texture::StrokeGen)], 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, textures[toU(Texture::DepthBuffer)], 0);
+		glReadBuffer(GL_NONE);				// Disable reading back from the colour attachments, as unnecessary in this assignment.
+		glDrawBuffer(GL_COLOR_ATTACHMENT0); // The fragment shader output at location 0 will be written to colour attachment 0 (i.e. the rendering result texture).
+		validate_fbo("Stroke Generation");
+		utils::opengl::debug::nameObject(GL_FRAMEBUFFER, fbos[toU(FBO::StrokeGen)], "Stroke Generation");
 
 		glBindFramebuffer(GL_FRAMEBUFFER, fbos[toU(FBO::Noise)]);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textures[toU(Texture::Noise)], 0);
@@ -798,6 +874,16 @@ namespace
 		locations.inverse_screen_resolution = glGetUniformLocation(silhouette_shader, "inverse_screen_resolution");
 
 		glUniformBlockBinding(silhouette_shader, locations.ubo_CameraViewProjTransforms, toU(UBO::CameraViewProjTransforms));
+	}
+
+	void fillStrokeGenShaderLocations(GLuint strokeGen_shader, StrokeGenShaderLocations& locations)
+	{
+		locations.ubo_CameraViewProjTransforms = glGetUniformBlockIndex(strokeGen_shader, "CameraViewProjTransforms");
+		locations.vertex_model_to_world = glGetUniformLocation(strokeGen_shader, "vertex_model_to_world");
+		locations.normal_model_to_world = glGetUniformLocation(strokeGen_shader, "normal_model_to_world");
+		locations.light_position = glGetUniformLocation(strokeGen_shader, "light_position");
+
+		glUniformBlockBinding(strokeGen_shader, locations.ubo_CameraViewProjTransforms, toU(UBO::CameraViewProjTransforms));
 	}
 
 } // namespace
