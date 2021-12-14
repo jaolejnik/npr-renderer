@@ -4,6 +4,7 @@ layout (triangles_adjacency) in;
 layout (line_strip, max_vertices=6) out;
 
 uniform vec3 light_position;
+uniform sampler2D noise_texture;
 
 in VS_OUT {
     vec3 vertex;
@@ -12,10 +13,16 @@ in VS_OUT {
 
 void EmitLine(int start, int end)
 {
-    gl_Position = gl_in[start].gl_Position;
+	vec2 disturbance1=texture(noise_texture,gs_in[start].vertex.xy).rg;
+	vec2 disturbance2=texture(noise_texture,gs_in[end].vertex.xy).gb;
+
+	vec3 length=(gs_in[start].vertex-gs_in[end].vertex)*0.2;
+	vec3 overlap=length*0.2;
+
+    gl_Position = gl_in[start].gl_Position+vec4(disturbance1,0.0f,0.0f);
     EmitVertex();
 
-    gl_Position = gl_in[end].gl_Position;
+    gl_Position = gl_in[end].gl_Position+vec4(disturbance2,0.0f,0.0f)+vec4(overlap,0.0f);
     EmitVertex();
 
     EndPrimitive();
@@ -29,6 +36,7 @@ void main()
     vec3 e4 = gs_in[3].vertex - gs_in[2].vertex;
     vec3 e5 = gs_in[4].vertex - gs_in[2].vertex;
     vec3 e6 = gs_in[5].vertex - gs_in[0].vertex;
+
 
     vec3 normal = cross(e1, e2);
     vec3 light_direction = normalize(light_position - gs_in[0].vertex);
