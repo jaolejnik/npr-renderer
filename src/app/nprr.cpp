@@ -146,7 +146,7 @@ edan35::NPRR::NPRR(WindowManager &windowManager) : mCamera(0.5f * glm::half_pi<f
 {
 	WindowManager::WindowDatum window_datum{inputHandler, mCamera, config::resolution_x, config::resolution_y, 0, 0, 0, 0};
 
-	window = mWindowManager.CreateGLFWWindow("EDAN35: Assignment 2", window_datum, config::msaa_rate);
+	window = mWindowManager.CreateGLFWWindow("NPRR", window_datum, config::msaa_rate);
 	if (window == nullptr)
 	{
 		throw std::runtime_error("Failed to get a window: aborting!");
