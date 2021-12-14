@@ -119,9 +119,9 @@ namespace
 		GLuint ubo_CameraViewProjTransforms{0u};
 		GLuint vertex_model_to_world{0u};
 		GLuint normal_model_to_world{0u};
+		GLuint diffuse_color{0u};
 		GLuint light_position{0u};
 		GLuint camera_position{0u};
-		GLuint ring{0u};
 		GLuint thickness{0u};
 		GLuint noise_texture{0u};
 		GLuint inverse_screen_resolution{0u};
@@ -167,7 +167,7 @@ void edan35::NPRR::run()
 	auto const cube_geometry = bonobo::loadObjects(config::resources_path("scenes/cube.obj"));
 	auto const sphere_geometry = bonobo::loadObjects(config::resources_path("scenes/sphere.obj"));
 	auto const face_geometry = bonobo::loadObjects(config::resources_path("scenes/face.obj"));
-	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("scenes/sponza.obj"));
+	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("scenes/sponza/sponza.obj"));
 	if (sponza_geometry.empty())
 	{
 		LogError("Failed to load the Sponza model");
@@ -380,7 +380,6 @@ void edan35::NPRR::run()
 			glUseProgram(fill_gbuffer_shader);
 			glUniform3fv(fill_gbuffer_shader_locations.light_position, 1, glm::value_ptr(light_position));
 			glUniform3fv(fill_gbuffer_shader_locations.camera_position, 1, glm::value_ptr(camera_position));
-			glUniform1f(fill_gbuffer_shader_locations.ring, 0.9f);
 			glUniform1f(fill_gbuffer_shader_locations.thickness, 0.5f);
 			glUniform2f(fill_gbuffer_shader_locations.inverse_screen_resolution,
 						1.0f / static_cast<float>(framebuffer_width),
@@ -388,6 +387,7 @@ void edan35::NPRR::run()
 			for (std::size_t i = 0; i < current_geometry.size(); ++i)
 			{
 				auto const &geometry = current_geometry[i];
+				auto const &diffuse_color = current_geometry[i].material.diffuse;
 
 				utils::opengl::debug::beginDebugGroup(geometry.name);
 
@@ -396,6 +396,7 @@ void edan35::NPRR::run()
 
 				glUniformMatrix4fv(fill_gbuffer_shader_locations.vertex_model_to_world, 1, GL_FALSE, glm::value_ptr(vertex_model_to_world));
 				glUniformMatrix4fv(fill_gbuffer_shader_locations.normal_model_to_world, 1, GL_FALSE, glm::value_ptr(normal_model_to_world));
+				glUniform3fv(fill_gbuffer_shader_locations.diffuse_color, 1, glm::value_ptr(diffuse_color));
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, textures[toU(Texture::Noise)]);
@@ -497,9 +498,9 @@ void edan35::NPRR::run()
 		//
 		if (show_textures)
 		{
-			bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
-			bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
-			bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			// bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
+			// bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			// bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 			//
 		}
 
@@ -804,7 +805,7 @@ namespace
 		locations.light_position = glGetUniformLocation(gbuffer_shader, "light_position");
 		locations.camera_position = glGetUniformLocation(gbuffer_shader, "camera_position");
 		locations.thickness = glGetUniformLocation(gbuffer_shader, "thickness");
-		locations.ring = glGetUniformLocation(gbuffer_shader, "ring");
+		locations.diffuse_color = glGetUniformLocation(gbuffer_shader, "diffuse_color");
 		locations.noise_texture = glGetUniformLocation(gbuffer_shader, "noise_texture");
 		locations.inverse_screen_resolution = glGetUniformLocation(gbuffer_shader, "inverse_screen_resolution");
 
