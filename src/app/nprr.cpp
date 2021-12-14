@@ -301,10 +301,10 @@ void edan35::NPRR::run()
 	auto seconds_nb = 0.0f;
 	std::array<GLuint64, toU(ElapsedTimeQuery::Count)> pass_elapsed_times;
 	auto lastTime = std::chrono::high_resolution_clock::now();
-	bool show_textures = true;
+	bool show_textures = false;
 	auto polygon_mode = bonobo::polygon_mode_t::fill;
 
-	bool show_logs = true;
+	bool show_logs = false;
 	bool show_gui = true;
 	bool shader_reload_failed = false;
 	bool copy_elapsed_times = true;
@@ -509,7 +509,10 @@ void edan35::NPRR::run()
 		{
 			bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
 			bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
-			// bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			if (is_sketching)
+				bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			else
+				bonobo::displayTexture({-0.95f, -0.45f}, {-0.55f, -0.05f}, textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 		}
 
 		//
@@ -563,6 +566,7 @@ void edan35::NPRR::run()
 		opened = ImGui::Begin("Scene Controls", nullptr, ImGuiWindowFlags_None);
 		if (opened)
 		{
+			ImGui::Checkbox("Show textures", &show_textures);
 			ImGui::Checkbox("Sketching?", &is_sketching);
 			bool changed = ImGui::Combo("Geometry", &current_geometry_id, geometry_names, IM_ARRAYSIZE(geometry_names), 3);
 			current_geometry = geometry_array[current_geometry_id];
