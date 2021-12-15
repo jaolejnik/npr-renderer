@@ -38,12 +38,12 @@ void EmitDisplacedLines(int start_index, int end_index)
 
         float direction = ((i % 2 == 0) ? 1.0 : -1.0) * i * 1.2;
 
-        vec4 mid_point = start_point + distance_vec + texture(noise_texture, gs_in[(end_index + i + rand_int) % 5].texcoord).rgba * direction;
+        vec4 mid_point = start_point + distance_vec + vec4(texture(noise_texture, gs_in[(end_index + i + rand_int) % 5].texcoord).rg, 0.0, 0.0) * direction;
 
         if (rand_int % 2 == 0)
-            start_point += texture(noise_texture, gs_in[(end_index + i + rand_int) % 5].texcoord).rgba * direction;
+            start_point += vec4(texture(noise_texture, gs_in[(end_index + i + rand_int) % 5].texcoord).rg, 0.0, 0.0) * direction;
         else    
-            end_point += texture(noise_texture, gs_in[(end_index + i + rand_int) % 5].texcoord).rgba * direction;
+            end_point += vec4(texture(noise_texture, gs_in[(start_index + i + rand_int) % 5].texcoord).rg, 0.0, 0.0) * direction;
 
         EmitLine(start_point, mid_point);
         EmitLine(mid_point, end_point);
@@ -67,7 +67,7 @@ void main()
 
         normal = cross(e3, e1);
 
-        if (dot(normal, light_direction) <= 0.0)
+        if (dot(normal, light_direction) <= 0)
             if (is_sketching)
                 EmitDisplacedLines(0, 2);
             else

@@ -517,7 +517,6 @@ void edan35::NPRR::run()
 		{
 			bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
 			bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
-			bonobo::displayTexture({-0.95f, -0.45f}, {-0.55f, -0.05f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 			if (is_sketching)
 				bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 			else
