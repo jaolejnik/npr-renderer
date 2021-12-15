@@ -2,6 +2,7 @@
 
 uniform sampler2D diffuse_texture;
 uniform sampler2D silhouette_texture;
+uniform bool is_sketching;
 
 
 in VS_OUT {
@@ -15,7 +16,7 @@ void main()
 	vec3 diffuse  = texture(diffuse_texture,  fs_in.texcoord).rgb;
 	vec3 silhouette  = texture(silhouette_texture,  fs_in.texcoord).rgb;
 
-	vec3 final_color = diffuse;
+	vec3 final_color = is_sketching ? vec3(1.0) : diffuse;
 
 	if (length(silhouette) < 0.9)
 		final_color = silhouette;

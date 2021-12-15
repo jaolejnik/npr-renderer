@@ -62,13 +62,14 @@ vec3 shade(vec3 L, vec3 V,  vec3 N, vec3 color)
 
 void main()
 {
+	vec3 L = normalize(light_position - fs_in.vertex);
+
 	if(is_sketching)
-		frag_color = vec4(1.0);
+		frag_color = vec4(1.0) * clamp(dot(normalize(fs_in.normal), L), 0.0, 1.0);
 	else
 	{
 		vec3 color = diffuse_color;
 		vec3 V = normalize(camera_position - fs_in.vertex);
-		vec3 L = normalize(light_position - fs_in.vertex);
 		vec3 shaded_color = shade(L, V, fs_in.normal, color);
 
 		float scale = min(min(shaded_color.r, shaded_color.g), shaded_color.b);

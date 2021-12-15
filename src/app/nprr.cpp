@@ -471,6 +471,8 @@ void edan35::NPRR::run()
 			glUseProgram(resolve_sketch_shader);
 			glViewport(0, 0, framebuffer_width, framebuffer_height);
 
+			glUniform1i(glGetUniformLocation(resolve_sketch_shader, "is_sketching"), is_sketching);
+
 			bind_texture_with_sampler(GL_TEXTURE_2D, 0, resolve_sketch_shader, "diffuse_texture", textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Nearest)]);
 			bind_texture_with_sampler(GL_TEXTURE_2D, 1, resolve_sketch_shader, "silhouette_texture", textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Nearest)]);
 			bonobo::drawFullscreen();
@@ -508,11 +510,12 @@ void edan35::NPRR::run()
 		if (show_textures)
 		{
 			bonobo::displayTexture({-0.95f, 0.55f}, {-0.55f, 0.95f}, textures[toU(Texture::DepthBuffer)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height), true, mCamera.mNear, mCamera.mFar);
-			bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			bonobo::displayTexture({-0.95f, 0.05f}, {-0.55f, 0.45f}, textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+			bonobo::displayTexture({-0.95f, -0.45f}, {-0.55f, -0.05f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 			if (is_sketching)
 				bonobo::displayTexture({0.55f, -0.95f}, {0.95f, -0.55f}, textures[toU(Texture::Noise)], samplers[toU(Sampler::Linear)], {0, 0, 0, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 			else
-				bonobo::displayTexture({-0.95f, -0.45f}, {-0.55f, -0.05f}, textures[toU(Texture::GBufferDiffuse)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
+				bonobo::displayTexture({-0.95f, -0.45f}, {-0.55f, -0.05f}, textures[toU(Texture::Silhouette)], samplers[toU(Sampler::Linear)], {0, 1, 2, -1}, glm::uvec2(framebuffer_width, framebuffer_height));
 		}
 
 		//
