@@ -46,8 +46,9 @@ namespace
 	enum class Objects : uint32_t
 	{
 		Sphere,
-		Cube,
+		Sofa,
 		Face,
+		Lego,
 		Sponza,
 		Count
 	};
@@ -164,10 +165,11 @@ void edan35::NPRR::run()
 {
 	auto diffuse_texture = bonobo::loadTexture2D(config::resources_path("textures/Paper_Wrinkled_001_basecolor.jpg"));
 
-	// Load the geometry of Sponza
-	auto const cube_geometry = bonobo::loadObjects(config::resources_path("scenes/cube.obj"));
+	// Load the geometry
 	auto const sphere_geometry = bonobo::loadObjects(config::resources_path("scenes/sphere.obj"));
+	auto const sofa_geometry = bonobo::loadObjects(config::resources_path("scenes/sofa.obj"));
 	auto const face_geometry = bonobo::loadObjects(config::resources_path("scenes/face/face.obj"));
+	auto const lego_geometry = bonobo::loadObjects(config::resources_path("scenes/lego/lego.obj"));
 	auto const sponza_geometry = bonobo::loadObjects(config::resources_path("scenes/sponza/sponza.obj"));
 	if (sponza_geometry.empty())
 	{
@@ -177,20 +179,24 @@ void edan35::NPRR::run()
 
 	const std::vector<std::vector<bonobo::mesh_data>> geometry_array = {
 		sphere_geometry,
-		cube_geometry,
+		sofa_geometry,
 		face_geometry,
+		lego_geometry,
 		sponza_geometry,
 	};
 	const char *geometry_names[] = {
 		"Sphere",
-		"Cube",
+		"Sofa",
 		"Face",
+		"LEGO",
 		"Sponza",
 	};
 	const GLuint line_width[] = {
 		20u,
-		20u,
+		15u,
 		12u,
+		12u,
+		15u,
 		5u,
 	};
 	int current_geometry_id = toU(Objects::Sphere);
@@ -571,7 +577,7 @@ void edan35::NPRR::run()
 		{
 			ImGui::Checkbox("Show textures", &show_textures);
 			ImGui::Checkbox("Sketching?", &is_sketching);
-			bool changed = ImGui::Combo("Geometry", &current_geometry_id, geometry_names, IM_ARRAYSIZE(geometry_names), 3);
+			bool changed = ImGui::Combo("Geometry", &current_geometry_id, geometry_names, IM_ARRAYSIZE(geometry_names), toU(Objects::Count));
 			current_geometry = geometry_array[current_geometry_id];
 			ImGui::Separator();
 			if (!is_sketching)
