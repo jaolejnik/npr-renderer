@@ -1,17 +1,39 @@
-|UbuntuBadge| |MacOSBadge| |WindowsBadge|
 
-.. |UbuntuBadge| image:: https://github.com/LUGGPublic/CG_Labs/actions/workflows/ubuntu.yml/badge.svg
-   :target: https://github.com/LUGGPublic/CG_Labs/actions/workflows/ubuntu.yml
-.. |MacOSBadge| image:: https://github.com/LUGGPublic/CG_Labs/actions/workflows/macos.yml/badge.svg
-   :target: https://github.com/LUGGPublic/CG_Labs/actions/workflows/macos.yml
-.. |WindowsBadge| image:: https://github.com/LUGGPublic/CG_Labs/actions/workflows/windows.yml/badge.svg
-   :target: https://github.com/LUGGPublic/CG_Labs/actions/workflows/windows.yml
 
+**Non-photo realistic renderer**
+================================
+
+Implementation of NPR rendering in OpenGL for High Performance Computer Graphics (EDAN35) 
+course at `Lund University`_. Read more about it in our report_.
+
+This project is based on the public repository CG_Labs, found at https://github.com/LUGGPublic/CG_Labs.
 CG_Labs contains the source code for the various Computer Graphics courses
 taught at `Lund University`_ (EDAF80_ and EDAN35_). All assignments of EDAF80
 are available, as well as the second assignment of EDAN35.
 
-The public repository is found at https://github.com/LUGGPublic/CG_Labs.
+
+Screenshots
+===========
+
+.. |sponza1| image:: images/sponza-pipeline-sketch.png
+.. |sponza2| image:: images/sponza-pipeline-comic.png
+
+.. |sofa1| image:: images/sofa-sketch.png
+.. |sofa2| image:: images/sofa-comic.png
+
+.. |lego1| image:: images/lego-sketch.png
+.. |lego2| image:: images/lego-comic.png
+
++---------+---------+
++ |sofa1| + |sofa2| +
++---------+---------+
+
++---------+---------+
++ |lego1| + |lego2| +
++---------+---------+
+
+|sponza1| 
+|sponza2|
 
 Dependencies
 ============
@@ -81,4 +103,5 @@ Licence
 .. _OpenGL 3.3: https://github.com/LUGGPublic/CG_Labs/tree/OpenGL_3.3
 .. _this ZIP file: http://fileadmin.cs.lth.se/cs/Education/EDA221/assignments/EDAF80_resources.zip
 .. _BUILD.rst: BUILD.rst
+.. _report: TLitchmore_JOlejnik_NPR_Report.pdf
 .. _the UNLICENCE file: UNLICENCE
